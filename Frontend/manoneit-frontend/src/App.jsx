@@ -1,18 +1,23 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React from 'react';
+import { Outlet } from 'react-router-dom';
+import Header from './components/Header/Header';
+import Footer from './components/Footer/Footer';
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
     <>
-          <h1 className="text-3xl text-red-500 font-bold underline">
-      Hello Manoneit Solutions
-    </h1>
+      {/* Common Header visible on all pages */}
+      <Header />
+
+      {/* Main content area where nested routes will render */}
+      <main>
+        <Outlet />
+      </main>
+
+      {/* Common Footer visible on all pages */}
+      <Footer />
     </>
-  )
+  );
 }
 
-export default App
+export default App;
