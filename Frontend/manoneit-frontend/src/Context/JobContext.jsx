@@ -1,70 +1,109 @@
-import { createContext, useState } from 'react';
+import React, { createContext, useState, useEffect, useContext } from 'react';
+import axios from 'axios';
+import { AuthContext } from './AuthContext';
 
 export const JobContext = createContext();
 
 export const JobProvider = ({ children }) => {
-  const [jobs, setJobs] = useState([
-    {
-      id: 1,
-      title: 'Software Engineer',
-      company: 'TechCorp',
-      location: 'Remote',
-      type: 'Full-Time',
-      category: 'Engineering',
-      description: 'Develop and maintain web applications.',
-      salary: '$100,000 - $120,000',
-      image: 'https://images.unsplash.com/photo-1516321310764-8d9c54860779?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80',
-    },
-    {
-      id: 2,
-      title: 'Product Manager',
-      company: 'Innovate Inc.',
-      location: 'New York, NY',
-      type: 'Full-Time',
-      category: 'Management',
-      description: 'Lead product development and strategy.',
-      salary: '$120,000 - $150,000',
-      image: 'https://images.unsplash.com/photo-1557426272-fc759fdf7a8d?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80',
-    },
-    {
-      id: 3,
-      title: 'Data Analyst',
-      company: 'DataSolutions',
-      location: 'San Francisco, CA',
-      type: 'Contract',
-      category: 'Data',
-      description: 'Analyze data and provide insights.',
-      salary: '$80,000 - $100,000',
-      image: 'https://images.unsplash.com/photo-1551288049-b1f3a0c3f3e8?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80',
-    },
-  ]);
+  const { token } = useContext(AuthContext);
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const [closedJobs, setClosedJobs] = useState([]);
+  useEffect(() => {
+    fetchJobs();
+  }, [token]);
 
-  const addJob = (job) => {
-    setJobs((prev) => [
-      ...prev,
-      {
-        ...job,
-        id: prev.length + 1,
-        image: job.image || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80',
-      },
-    ]);
+  const fetchJobs = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const response = await axios.get('http://localhost:8000/api/v1/users/getAllJobs', {
+        headers,
+      });
+      console.log('Fetched jobs response:', response.data);
+      const jobData = response.data.data || response.data || [];
+      if (!Array.isArray(jobData)) {
+        throw new Error('Invalid job data format');
+      }
+      setJobs(jobData);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching jobs:', error.response?.data || error.message);
+      setError(error.response?.data?.message || 'Failed to fetch jobs');
+      setJobs([]);
+      setLoading(false);
+    }
   };
 
-  const moveToClosed = (id) => {
-    const jobToClose = jobs.find((job) => job.id === id);
-    if (jobToClose) {
-      setJobs((prev) => prev.filter((job) => job.id !== id));
-      setClosedJobs((prev) => {
-        const updated = [jobToClose, ...prev];
-        return updated.slice(0, 10); // Limit to 10 jobs
+  const addJob = async (job) => {
+    try {
+      if (!token) throw new Error('No token available');
+      const response = await axios.post(
+        'http://localhost:8000/api/v1/users/createJob',
+        job,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      console.log('Added job:', response.data.data);
+      setJobs((prev) => [...prev, response.data.data]);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error adding job:', error.response?.data || error.message);
+      throw error.response?.data || error;
+    }
+  };
+
+  const moveToClosed = async (jobId) => {
+    try {
+      if (!token) throw new Error('No token available');
+      const response = await axios.patch(
+        `http://localhost:8000/api/v1/users/closeJob/${jobId}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      console.log('Closed job:', response.data.data);
+      // Update job status to 'closed'
+      setJobs((prev) => {
+        const updatedJobs = prev.map((job) =>
+          job._id === jobId ? { ...job, status: 'closed' } : job
+        );
+        console.log('Updated jobs state:', updatedJobs); // Debug
+        return updatedJobs;
       });
+      return response.data.data;
+    } catch (error) {
+      console.error('Error closing job:', error.response?.data || error.message);
+      throw error.response?.data?.message || error.message;
+    }
+  };
+
+  const deleteJob = async (jobId) => {
+    try {
+      if (!token) throw new Error('No token available');
+      await axios.delete(`http://localhost:8000/api/v1/users/deleteJob/${jobId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      console.log('Deleted job:', jobId);
+      setJobs((prev) => prev.filter((job) => job._id !== jobId));
+    } catch (error) {
+      console.error('Error deleting job:', error.response?.data || error.message);
+      throw error.response?.data || error;
     }
   };
 
   return (
-    <JobContext.Provider value={{ jobs, closedJobs, addJob, moveToClosed }}>
+    <JobContext.Provider value={{ jobs, addJob, moveToClosed, deleteJob, loading, error }}>
       {children}
     </JobContext.Provider>
   );

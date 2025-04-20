@@ -1,29 +1,64 @@
-import { useState, useContext } from 'react';
+import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { JobContext } from './Context/JobContext';
+import { useContext } from 'react';
+import { AuthContext } from './Context/AuthContext';
 
 const PostJob = () => {
-  const { addJob } = useContext(JobContext);
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    title: '',
-    company: '',
-    location: '',
-    type: 'Full-Time',
-    category: 'Engineering',
-    description: '',
-    salary: '',
+  const { user, token } = useContext(AuthContext);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setError,
+  } = useForm({
+    defaultValues: {
+      jobTitle: '',
+      company: '',
+      location: '',
+      jobType: 'full-time',
+      skillsRequired: '',
+      description: '',
+      salary: '',
+    },
   });
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const onSubmit = async (data) => {
+    if (!user || user.role !== 'admin') {
+      setError('root', { message: 'You must be an admin to post jobs' });
+      return;
+    }
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    addJob(formData);
-    navigate('/jobs');
+    const jobData = {
+      ...data,
+      skillsRequired: data.skillsRequired
+        .split(',')
+        .map((skill) => skill.trim())
+        .filter((skill) => skill),
+      salary: data.salary ? Number(data.salary) : undefined,
+    };
+
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/users/createJob', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(jobData),
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        navigate('/jobs');
+      } else {
+        setError('root', { message: result.message || 'Error posting the job' });
+      }
+    } catch (error) {
+      console.error('Error posting job:', error);
+      setError('root', { message: 'Failed to post job. Please try again.' });
+    }
   };
 
   return (
@@ -32,149 +67,138 @@ const PostJob = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="max-w-lg w-full bg-white/90 backdrop-blur-lg rounded-2xl shadow-xl p-8 space-y-8"
+        className="bg-white p-8 rounded-lg shadow-md max-w-lg w-full mx-auto my-12"
+        style={{ boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)' }}
       >
-        <div className="text-center">
-          <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600">
-            Post a New Job
-          </h2>
-          <p className="mt-2 text-gray-600">Add a job listing for Manoneit Solutions</p>
-        </div>
+        <h2 className="text-center text-3xl font-bold text-gray-800 mb-8">Post a New Job</h2>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {errors.root && <p className="text-red-500 text-center text-sm mb-4">{errors.root.message}</p>}
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          {/* Job Title */}
           <div>
-            <label
-              htmlFor="title"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="jobTitle" className="block text-sm font-medium text-gray-600">
               Job Title
             </label>
             <input
-              id="title"
-              name="title"
+              id="jobTitle"
+              {...register('jobTitle', { required: 'Job title is required' })}
               type="text"
-              value={formData.title}
-              onChange={handleChange}
-              required
-              className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
               placeholder="e.g., Software Engineer"
+              className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
             />
+            {errors.jobTitle && <p className="text-red-500 text-sm mt-1">{errors.jobTitle.message}</p>}
           </div>
+
+          {/* Company */}
           <div>
-            <label
-              htmlFor="company"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="company" className="block text-sm font-medium text-gray-600">
               Company
             </label>
             <input
               id="company"
-              name="company"
+              {...register('company', { required: 'Company name is required' })}
               type="text"
-              value={formData.company}
-              onChange={handleChange}
-              required
-              className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
               placeholder="e.g., TechCorp"
+              className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
             />
+            {errors.company && <p className="text-red-500 text-sm mt-1">{errors.company.message}</p>}
           </div>
+
+          {/* Location */}
           <div>
-            <label
-              htmlFor="location"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="location" className="block text-sm font-medium text-gray-600">
               Location
             </label>
             <input
               id="location"
-              name="location"
+              {...register('location', { required: 'Location is required' })}
               type="text"
-              value={formData.location}
-              onChange={handleChange}
-              required
-              className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
               placeholder="e.g., Remote or New York, NY"
+              className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
             />
+            {errors.location && <p className="text-red-500 text-sm mt-1">{errors.location.message}</p>}
           </div>
+
+          {/* Job Type */}
           <div>
-            <label
-              htmlFor="type"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="jobType" className="block text-sm font-medium text-gray-600">
               Job Type
             </label>
             <select
-              id="type"
-              name="type"
-              value={formData.type}
-              onChange={handleChange}
-              className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+              id="jobType"
+              {...register('jobType', { required: 'Job type is required' })}
+              className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
             >
-              <option value="Full-Time">Full-Time</option>
-              <option value="Part-Time">Part-Time</option>
-              <option value="Contract">Contract</option>
-              <option value="Internship">Internship</option>
+              <option value="full-time">Full-Time</option>
+              <option value="part-time">Part-Time</option>
+              <option value="contract">Contract</option>
+              <option value="internship">Internship</option>
             </select>
+            {errors.jobType && <p className="text-red-500 text-sm mt-1">{errors.jobType.message}</p>}
           </div>
+
+          {/* Skills Required */}
           <div>
-            <label
-              htmlFor="category"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Category
+            <label htmlFor="skillsRequired" className="block text-sm font-medium text-gray-600">
+              Skills Required
             </label>
-            <select
-              id="category"
-              name="category"
-              value={formData.category}
-              onChange={handleChange}
-              className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-            >
-              <option value="Engineering">Engineering</option>
-              <option value="Management">Management</option>
-              <option value="Data">Data</option>
-              <option value="Design">Design</option>
-              <option value="Marketing">Marketing</option>
-            </select>
+            <input
+              id="skillsRequired"
+              {...register('skillsRequired', {
+                required: 'At least one skill is required',
+                validate: (value) =>
+                  value.split(',').map((skill) => skill.trim()).filter((skill) => skill).length > 0 ||
+                  'At least one skill is required',
+              })}
+              type="text"
+              placeholder="e.g., JavaScript, React, Node.js"
+              className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+            />
+            <p className="text-sm text-gray-500 mt-1">Separate skills with commas</p>
+            {errors.skillsRequired && (
+              <p className="text-red-500 text-sm mt-1">{errors.skillsRequired.message}</p>
+            )}
           </div>
+
+          {/* Job Description */}
           <div>
-            <label
-              htmlFor="description"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="description" className="block text-sm font-medium text-gray-600">
               Job Description
             </label>
             <textarea
               id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              required
-              rows="5"
-              className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+              {...register('description', { required: 'Job description is required' })}
               placeholder="Describe the job responsibilities and requirements..."
+              className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors min-h-[100px] resize-y"
             />
+            {errors.description && (
+              <p className="text-red-500 text-sm mt-1">{errors.description.message}</p>
+            )}
           </div>
+
+          {/* Salary */}
           <div>
-            <label
-              htmlFor="salary"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Salary Range
+            <label htmlFor="salary" className="block text-sm font-medium text-gray-600">
+              Salary
             </label>
             <input
               id="salary"
-              name="salary"
-              type="text"
-              value={formData.salary}
-              onChange={handleChange}
-              className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-              placeholder="e.g., $80,000 - $100,000"
+              {...register('salary', {
+                min: { value: 0, message: 'Salary cannot be negative' },
+              })}
+              type="number"
+              placeholder="e.g., 80000"
+              className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
             />
+            <p className="text-sm text-gray-500 mt-1">Optional: Enter annual salary amount</p>
+            {errors.salary && <p className="text-red-500 text-sm mt-1">{errors.salary.message}</p>}
           </div>
+
+          {/* Submit */}
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-full font-semibold hover:scale-105 transform transition-all duration-300"
+            className="w-full bg-blue-600 text-white py-3 rounded-md font-semibold hover:bg-blue-700 transition-colors"
           >
             Post Job
           </button>

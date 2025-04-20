@@ -1,12 +1,36 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-
-// Simulated auth (replace with real auth)
-const isAuthenticated = true;
-const userRole = 'admin';
+import { useState, useContext } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../../Context/AuthContext';
+import axios from 'axios';
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { user, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
+
+  console.log('Header user:', { user: user ? { email: user.email, role: user.role } : null });
+
+  const handleLogout = async () => {
+    try {
+      await axios.post(
+        'http://localhost:8000/api/v1/users/logout',
+        {},
+        {
+          withCredentials: true,
+        }
+      );
+      logout();
+      setIsOpen(false);
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error.response?.data?.message || error.message);
+    }
+  };
+
+  const handleNavClick = (path) => {
+    console.log('Navigating to:', path);
+    setIsOpen(false);
+  };
 
   return (
     <header className="bg-white shadow-lg sticky top-0 z-50">
@@ -14,88 +38,85 @@ const Header = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <Link to="/">
+            <Link to="/" onClick={() => handleNavClick('/')}>
               <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600">
                 Manoneit Solutions
               </h1>
             </Link>
           </div>
 
-          {/* Navigation Links */}
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-10">
             {['Home', 'Jobs', 'Clients', 'Contact'].map((item) => (
               <Link
                 key={item}
                 to={item === 'Home' ? '/' : `/${item.toLowerCase()}`}
+                onClick={() => handleNavClick(item === 'Home' ? '/' : `/${item.toLowerCase()}`)}
                 className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300"
               >
                 {item}
               </Link>
             ))}
-            {isAuthenticated && userRole === 'admin' && (
-              <Link
-                to="/post-job"
-                className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300"
-              >
-                Post Job
-              </Link>
+            {user?.role === 'admin' && (
+              <>
+                <Link
+                  to="/post-job"
+                  onClick={() => handleNavClick('/post-job')}
+                  className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300"
+                >
+                  Post Job
+                </Link>
+                <Link
+                  to="/admin/dashboard"
+                  onClick={() => handleNavClick('/admin/dashboard')}
+                  className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300"
+                >
+                  Dashboard
+                </Link>
+              </>
             )}
-            {!isAuthenticated ? (
+            {!user ? (
               <>
                 <Link
                   to="/login"
+                  onClick={() => handleNavClick('/login')}
                   className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300"
                 >
                   Login
                 </Link>
                 <Link
                   to="/signup"
+                  onClick={() => handleNavClick('/signup')}
                   className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300"
                 >
                   Sign Up
                 </Link>
               </>
             ) : (
-              <Link
-                to={`/${userRole}/dashboard`}
+              <button
+                onClick={handleLogout}
                 className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300"
               >
-                Dashboard
-              </Link>
+                Logout
+              </button>
             )}
           </nav>
 
           {/* CTA Button */}
           <div className="hidden md:block">
-            {!isAuthenticated ? (
-              <Link
-                to="/signup"
-                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-5 py-2 rounded-full font-semibold hover:scale-105 transform transition-transform duration-300"
-              >
-                Get Started
-              </Link>
-            ) : (
-              <Link
-                to={`/${userRole}/dashboard`}
-                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-5 py-2 rounded-full font-semibold hover:scale-105 transform transition-transform duration-300"
-              >
-                Dashboard
-              </Link>
-            )}
+            <Link
+              to={user ? '/admin/dashboard' : '/signup'}
+              onClick={() => handleNavClick(user ? '/admin/dashboard' : '/signup')}
+              className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-5 py-2 rounded-full font-semibold hover:scale-105 transition-transform duration-300"
+            >
+              {user ? 'Dashboard' : 'Get Started'}
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
           <div className="md:hidden">
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="text-gray-700 focus:outline-none"
-            >
-              <svg
-                className="h-7 w-7"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+            <button onClick={() => setIsOpen(!isOpen)} className="text-gray-700 focus:outline-none">
+              <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {isOpen ? (
                   <path
                     strokeLinecap="round"
@@ -118,59 +139,67 @@ const Header = () => {
 
         {/* Mobile Menu */}
         {isOpen && (
-          <div className="md:hidden bg-white/90 backdrop-blur-lg border-t border-gray-200 animate-slide-down">
+          <div className="md:hidden bg-white/90 border-t border-gray-200 transition-all duration-300">
             <nav className="flex flex-col space-y-3 px-4 py-6">
               {['Home', 'Jobs', 'Clients', 'Contact'].map((item) => (
                 <Link
                   key={item}
                   to={item === 'Home' ? '/' : `/${item.toLowerCase()}`}
+                  onClick={() => handleNavClick(item === 'Home' ? '/' : `/${item.toLowerCase()}`)}
                   className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300"
-                  onClick={() => setIsOpen(false)}
                 >
                   {item}
                 </Link>
               ))}
-              {isAuthenticated && userRole === 'admin' && (
-                <Link
-                  to="/post-job"
-                  className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300"
-                  onClick={() => setIsOpen(false)}
-                >
-                  Post Job
-                </Link>
+              {user?.role === 'admin' && (
+                <>
+                  <Link
+                    to="/post-job"
+                    onClick={() => handleNavClick('/post-job')}
+                    className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300"
+                  >
+                    Post Job
+                  </Link>
+                  <Link
+                    to="/admin/dashboard"
+                    onClick={() => handleNavClick('/admin/dashboard')}
+                    className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300"
+                  >
+                    Dashboard
+                  </Link>
+                </>
               )}
-              {!isAuthenticated ? (
+              {!user ? (
                 <>
                   <Link
                     to="/login"
+                    onClick={() => handleNavClick('/login')}
                     className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300"
-                    onClick={() => setIsOpen(false)}
                   >
                     Login
                   </Link>
                   <Link
                     to="/signup"
+                    onClick={() => handleNavClick('/signup')}
                     className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300"
-                    onClick={() => setIsOpen(false)}
                   >
                     Sign Up
                   </Link>
                 </>
               ) : (
-                <Link
-                  to={`/${userRole}/dashboard`}
-                  className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300"
-                  onClick={() => setIsOpen(false)}
+                <button
+                  onClick={handleLogout}
+                  className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300 text-left"
                 >
-                  Dashboard
-                </Link>
+                  Logout
+                </button>
               )}
               <Link
-                to={isAuthenticated ? `/${userRole}/dashboard` : '/signup'}
-                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-5 py-2 rounded-full font-semibold hover:scale-105 transform transition-transform duration-300 text-center"
-                onClick={() => setIsOpen(false)}
+                to={user ? '/admin/dashboard' : '/signup'}
+                onClick={() => handleNavClick(user ? '/admin/dashboard' : '/signup')}
+                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-5 py-2 rounded-full font-semibold hover:scale-105 transition-transform duration-300 text-center"
               >
-                {isAuthenticated ? 'Dashboard' : 'Get Started'}
+                {user ? 'Dashboard' : 'Get Started'}
               </Link>
             </nav>
           </div>

@@ -1,208 +1,383 @@
 import { useState, useContext, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { JobContext } from './Context/JobContext';
-
-// Simulated auth
-const userRole = 'admin';
+import { AuthContext } from './Context/AuthContext';
+import { FaArrowUp } from 'react-icons/fa';
 
 const Jobs = () => {
-  const { jobs, closedJobs, moveToClosed } = useContext(JobContext);
-  const location = useLocation();
-  const [filter, setFilter] = useState('All');
+  const { jobs, loading, error, moveToClosed, deleteJob } = useContext(JobContext);
+  const { user } = useContext(AuthContext);
+  const [flippedCard, setFlippedCard] = useState(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [applyLoading, setApplyLoading] = useState({});
+  const [closeLoading, setCloseLoading] = useState({});
+  const [deleteLoading, setDeleteLoading] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Extract search query from URL
+  // Debug jobs
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    setSearchQuery(params.get('search') || '');
-  }, [location.search]);
+    console.log('Jobs data (Jobs.jsx):', jobs);
+    console.log('Active jobs:', jobs.filter((job) => job.status === 'active'));
+    console.log('Closed jobs:', jobs.filter((job) => job.status === 'closed'));
+    console.log('Loading:', loading, 'Error:', error);
+  }, [jobs, loading, error]);
 
-  const filteredJobs = jobs
-    .filter((job) =>
-      filter === 'All' ? true : job.category === filter
-    )
-    .filter((job) =>
-      searchQuery
-        ? [job.title, job.company, job.location].some((field) =>
-            field.toLowerCase().includes(searchQuery.toLowerCase())
-          )
-        : true
-    );
+  // Scroll-to-top visibility
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 300);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
-  const handleDelete = (id, title) => {
-    if (window.confirm(`Are you sure you want to close "${title}"? It will be moved to Recently Closed Jobs.`)) {
-      moveToClosed(id);
+  // Smooth scroll to top
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Handle quick apply
+  const handleQuickApply = (id) => {
+    if (!user) {
+      window.location.href = '/login';
+      return;
+    }
+    setApplyLoading((prev) => ({ ...prev, [id]: true }));
+    setTimeout(() => {
+      setApplyLoading((prev) => ({ ...prev, [id]: false }));
+      window.location.href = `/apply/${id}`;
+    }, 1000);
+  };
+
+  // Handle close job
+  const handleCloseJob = async (id) => {
+    if (!user || user.role !== 'admin') {
+      alert('Only admins can close jobs');
+      return;
+    }
+    setCloseLoading((prev) => ({ ...prev, [id]: true }));
+    try {
+      await moveToClosed(id);
+      setCloseLoading((prev) => ({ ...prev, [id]: false }));
+    } catch (error) {
+      console.error('Failed to close job:', error);
+      alert('Failed to close job');
+      setCloseLoading((prev) => ({ ...prev, [id]: false }));
     }
   };
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    window.history.pushState({}, '', `/jobs?search=${searchQuery}`);
-    setSearchQuery(searchQuery);
+  // Handle delete job
+  const handleDeleteJob = async (id) => {
+    if (!user || user.role !== 'admin') {
+      alert('Only admins can delete jobs');
+      return;
+    }
+    if (!window.confirm('Are you sure you want to delete this job?')) {
+      return;
+    }
+    setDeleteLoading((prev) => ({ ...prev, [id]: true }));
+    try {
+      await deleteJob(id);
+      setDeleteLoading((prev) => ({ ...prev, [id]: false }));
+    } catch (error) {
+      console.error('Failed to delete job:', error);
+      alert('Failed to close job');
+      setDeleteLoading((prev) => ({ ...prev, [id]: false }));
+    }
   };
 
+  // Handle search input
+  const handleSearch = (e) => {
+    setSearchQuery(e.target.value);
+    console.log('Search query:', e.target.value);
+  };
+
+  // Filter active jobs based on search query
+  const activeJobs = (jobs || [])
+    .filter((job) => job.status === 'active')
+    .filter((job) => {
+      if (!searchQuery) return true;
+      const query = searchQuery.toLowerCase();
+      return (
+        job.jobTitle?.toLowerCase().includes(query) ||
+        job.company?.toLowerCase().includes(query) ||
+        job.location?.toLowerCase().includes(query) ||
+        job.description?.toLowerCase().includes(query)
+      );
+    });
+
+  // Log filtered jobs
+  useEffect(() => {
+    console.log('Filtered active jobs:', activeJobs);
+  }, [activeJobs]);
+
+  // Recently closed jobs (unfiltered)
+  const recentlyClosedJobs = (jobs || [])
+    .filter((job) => job.status === 'closed')
+    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+    .slice(0, 10);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-purple-100">
+        <p className="text-gray-600 text-lg">Loading jobs...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-purple-100">
+        <p className="text-red-500 text-lg">Error: {error}</p>
+      </div>
+    );
+  }
+
   return (
-    <section id="jobs" className="py-16 bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Search Bar */}
-        <motion.form
-          onSubmit={handleSearch}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="max-w-xl mx-auto mb-8"
-        >
-          <div className="flex glass rounded-full overflow-hidden">
+    <div className="relative py-16">
+      {/* Active Jobs Section */}
+      <section className="bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="text-3xl md:text-4xl font-bold text-center mb-12 text-gray-800"
+          >
+            Available Jobs
+          </motion.h2>
+
+          {/* Search Box */}
+          <div className="mb-8 max-w-lg mx-auto">
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search jobs by title, company, or location..."
-              className="flex-1 px-4 py-3 bg-transparent text-gray-800 placeholder-gray-500 focus:outline-none"
+              onChange={handleSearch}
+              placeholder="Search jobs by title, company, location, or description..."
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700 placeholder-gray-400"
             />
-            <button
-              type="submit"
-              className="bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-3 text-white font-semibold hover:scale-105 transition-all duration-300"
-            >
-              Search
-            </button>
           </div>
-        </motion.form>
 
-        {/* Active Jobs Section */}
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="text-3xl md:text-4xl font-bold text-center mb-12 text-gray-800"
-        >
-          Explore Active Jobs
-        </motion.h2>
-        <div className="flex justify-center space-x-4 mb-8 flex-wrap gap-2">
-          {['All', 'Engineering', 'Management', 'Data', 'Design', 'Marketing'].map(
-            (category) => (
-              <button
-                key={category}
-                onClick={() => setFilter(category)}
-                className={`px-4 py-2 rounded-full font-medium transition-all duration-300 ${
-                  filter === category
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
-                    : 'bg-white text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                {category}
-              </button>
-            )
-          )}
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ duration: 0.8 }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
+            {activeJobs.length > 0 ? (
+              activeJobs.map((job) => (
+                <motion.div
+                  key={job._id}
+                  className="relative bg-white rounded-xl p-6 shadow-lg hover:shadow-xl cursor-pointer"
+                  onClick={() => setFlippedCard(flippedCard === job._id ? null : job._id)}
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <AnimatePresence>
+                    {flippedCard === job._id ? (
+                      <motion.div
+                        initial={{ rotateY: 180, opacity: 0 }}
+                        animate={{ rotateY: 0, opacity: 1 }}
+                        exit={{ rotateY: -180, opacity: 0 }}
+                        transition={{ duration: 0.5 }}
+                        className="absolute inset-0 p-6 flex flex-col justify-between"
+                      >
+                        <div>
+                          <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                            {job.jobTitle}
+                          </h3>
+                          <p className="text-gray-600 mb-2">
+                            {job.salary ? `$${job.salary.toLocaleString()}` : 'Salary not specified'}
+                          </p>
+                          <p className="text-gray-600 text-sm line-clamp-3">{job.description}</p>
+                        </div>
+                        <div className="flex gap-2 flex-wrap">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleQuickApply(job._id);
+                            }}
+                            className="bg-blue-600 text-white px-4 py-2 rounded-full font-medium hover:bg-blue-700 transition-colors duration-300"
+                            disabled={applyLoading[job._id]}
+                          >
+                            {applyLoading[job._id] ? 'Applying...' : 'Quick Apply'}
+                          </button>
+                          {user && user.role === 'admin' && (
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCloseJob(job._id);
+                                }}
+                                className="bg-red-600 text-white px-4 py-2 rounded-full font-medium hover:bg-red-700 transition-colors duration-300"
+                                disabled={closeLoading[job._id]}
+                              >
+                                {closeLoading[job._id] ? 'Closing...' : 'Close Job'}
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteJob(job._id);
+                                }}
+                                className="bg-gray-600 text-white px-4 py-2 rounded-full font-medium hover:bg-gray-700 transition-colors duration-300"
+                                disabled={deleteLoading[job._id]}
+                              >
+                                {deleteLoading[job._id] ? 'Deleting...' : 'Delete Job'}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        initial={{ rotateY: -180, opacity: 0 }}
+                        animate={{ rotateY: 0, opacity: 1 }}
+                        exit={{ rotateY: 180, opacity: 0 }}
+                        transition={{ duration: 0.5 }}
+                      >
+                        <div className="flex items-center mb-4">
+                          <img
+                            src={job.image || 'https://via.placeholder.com/48'}
+                            alt={job.jobTitle}
+                            className="w-12 h-12 rounded-full object-cover mr-4"
+                          />
+                          <div>
+                            <h3 className="text-xl font-semibold text-gray-800">
+                              {job.jobTitle}
+                            </h3>
+                            <p className="text-gray-600">{job.company}</p>
+                          </div>
+                        </div>
+                        <p className="text-gray-500 text-sm mb-2">{job.location}</p>
+                        <p className="text-gray-500 text-sm mb-4">{job.jobType}</p>
+                        <div className="flex gap-2 flex-wrap">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleQuickApply(job._id);
+                            }}
+                            className="bg-blue-600 text-white px-4 py-2 rounded-full font-medium hover:bg-blue-700 transition-colors duration-300"
+                            disabled={applyLoading[job._id]}
+                          >
+                            {applyLoading[job._id] ? 'Applying...' : 'Quick Apply'}
+                          </button>
+                          {user && user.role === 'admin' && (
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCloseJob(job._id);
+                                }}
+                                className="bg-red-600 text-white px-4 py-2 rounded-full font-medium hover:bg-red-700 transition-colors duration-300"
+                                disabled={closeLoading[job._id]}
+                              >
+                                {closeLoading[job._id] ? 'Closing...' : 'Close Job'}
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteJob(job._id);
+                                }}
+                                className="bg-gray-600 text-white px-4 py-2 rounded-full font-medium hover:bg-gray-700 transition-colors duration-300"
+                                disabled={deleteLoading[job._id]}
+                              >
+                                {deleteLoading[job._id] ? 'Deleting...' : 'Delete Job'}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              ))
+            ) : (
+              <p className="text-center text-gray-600 col-span-full">
+                {searchQuery ? 'No jobs match your search.' : 'No active jobs found.'}
+              </p>
+            )}
+          </motion.div>
         </div>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-16"
-        >
-          {filteredJobs.length > 0 ? (
-            filteredJobs.map((job) => (
-              <div
-                key={job.id}
-                className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 border-l-4 border-blue-500"
-              >
-                <div className="flex items-center mb-4">
-                  <img
-                    src={job.image}
-                    alt={job.title}
-                    className="w-12 h-12 rounded-full object-cover mr-4"
-                  />
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-800">
-                      {job.title}
-                    </h3>
-                    <p className="text-gray-600">{job.company}</p>
-                  </div>
-                </div>
-                <p className="text-gray-500 text-sm mb-2">{job.location}</p>
-                <p className="text-gray-500 text-sm mb-2">{job.type}</p>
-                <p className="text-gray-500 text-sm mb-2">{job.salary}</p>
-                <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                  {job.description}
-                </p>
-                <div className="flex gap-2 flex-wrap">
-                  <Link
-                    to="/apply"
-                    className="bg-blue-600 text-white px-4 py-2 rounded-full font-medium hover:bg-blue-700 transition-all duration-300"
-                  >
-                    Apply Now
-                  </Link>
-                  {userRole === 'admin' && (
-                    <button
-                      onClick={() => handleDelete(job.id, job.title)}
-                      className="bg-red-600 text-white px-4 py-2 rounded-full font-medium hover:bg-red-700 transition-all duration-300"
-                    >
-                      Close Job
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))
-          ) : (
-            <p className="text-center text-gray-600 col-span-full">
-              No active jobs found.
-            </p>
-          )}
-        </motion.div>
+      </section>
 
-        {/* Recently Closed Jobs Section */}
-        {closedJobs.length > 0 && (
-          <>
-            <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="text-3xl md:text-4xl font-bold text-center mb-12 text-gray-800"
-            >
-              Recently Closed Jobs
-            </motion.h2>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.8 }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-            >
-              {closedJobs.map((job) => (
-                <div
-                  key={job.id}
-                  className="bg-white rounded-xl p-6 shadow-lg border-l-4 border-gray-400 opacity-80"
+      {/* Recently Closed Jobs Section */}
+      <section className="py-16 bg-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="text-3xl md:text-4xl font-bold text-center mb-12 text-gray-800"
+          >
+            Recently Closed Jobs
+          </motion.h2>
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ duration: 0.8 }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
+            {recentlyClosedJobs.length > 0 ? (
+              recentlyClosedJobs.map((job) => (
+                <motion.div
+                  key={job._id}
+                  className="relative bg-white rounded-xl p-6 shadow-lg hover:shadow-xl"
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ duration: 0.3 }}
                 >
                   <div className="flex items-center mb-4">
                     <img
-                      src={job.image}
-                      alt={job.title}
-                      className="w-12 h-12 rounded-full object-cover mr-4 opacity-60"
+                      src={job.image || 'https://via.placeholder.com/48'}
+                      alt={job.jobTitle}
+                      className="w-12 h-12 rounded-full object-cover mr-4"
                     />
                     <div>
-                      <h3 className="text-xl font-semibold text-gray-600">
-                        {job.title}
+                      <h3 className="text-xl font-semibold text-gray-800">
+                        {job.jobTitle}
                       </h3>
-                      <p className="text-gray-500">{job.company}</p>
+                      <p className="text-gray-600">{job.company}</p>
                     </div>
                   </div>
                   <p className="text-gray-500 text-sm mb-2">{job.location}</p>
-                  <p className="text-gray-500 text-sm mb-2">{job.type}</p>
-                  <p className="text-gray-500 text-sm mb-2">{job.salary}</p>
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                    {job.description}
+                  <p className="text-gray-500 text-sm mb-4">{job.jobType}</p>
+                  <p className="text-red-500 text-sm font-medium mb-4">
+                    Closed on {new Date(job.updatedAt).toLocaleDateString()}
                   </p>
-                  <p className="text-red-500 text-sm font-medium">
-                    This job is closed.
-                  </p>
-                </div>
-              ))}
-            </motion.div>
-          </>
+                  {user && user.role === 'admin' && (
+                    <button
+                      onClick={() => handleDeleteJob(job._id)}
+                      className="bg-gray-600 text-white px-4 py-2 rounded-full font-medium hover:bg-gray-700 transition-colors duration-300"
+                      disabled={deleteLoading[job._id]}
+                    >
+                      {deleteLoading[job._id] ? 'Deleting...' : 'Delete Job'}
+                    </button>
+                  )}
+                </motion.div>
+              ))
+            ) : (
+              <p className="text-center text-gray-600 col-span-full">No recently closed jobs.</p>
+            )}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Scroll-to-Top Button */}
+      <AnimatePresence>
+        {showScrollTop && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0 }}
+            onClick={scrollToTop}
+            className="fixed bottom-6 right-6 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition-colors duration-300"
+            aria-label="Scroll to top"
+          >
+            <FaArrowUp />
+          </motion.button>
         )}
-      </div>
-    </section>
+      </AnimatePresence>
+    </div>
   );
 };
 

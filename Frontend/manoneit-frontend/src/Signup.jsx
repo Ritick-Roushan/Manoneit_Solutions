@@ -1,22 +1,95 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { Link, useNavigate } from 'react-router-dom';
+import { useContext, useState } from 'react';
+import { AuthContext } from './Context/AuthContext';
 
 const Signup = () => {
   const [role, setRole] = useState('candidate');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [name, setName] = useState('');
-  const [companyName, setCompanyName] = useState('');
-  const [phone, setPhone] = useState('');
+  const navigate = useNavigate();
+  const { login } = useContext(AuthContext);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setError,
+    watch,
+  } = useForm({
+    defaultValues: {
+      fullname: '',
+      email: '',
+      contactnumber: '',
+      companyname: '',
+      password: '',
+      confirmPassword: '',
+    },
+  });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (password !== confirmPassword) {
-      alert('Passwords do not match!');
+  const password = watch('password');
+
+  const onSubmit = async (data) => {
+    // Validate password match
+    if (data.password !== data.confirmPassword) {
+      setError('confirmPassword', { message: 'Passwords do not match' });
       return;
     }
-    console.log({ role, email, password, name, companyName, phone });
+
+    // Prepare user data
+    const userData = {
+      fullname: data.fullname,
+      email: data.email,
+      contactnumber: data.contactnumber,
+      role,
+      password: data.password,
+      ...(role === 'company' && data.companyname && { companyname: data.companyname }),
+    };
+
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/users/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData),
+      });
+
+      const result = await response.json();
+      console.log('Signup response:', {
+        status: response.status,
+        headers: Object.fromEntries(response.headers.entries()),
+        body: result,
+      });
+
+      // Handle success (200 or 201)
+      if (response.status === 200 || response.status === 201) {
+        // Try various response structures
+        const accessToken =
+          result.data?.accessToken ||
+          result.accessToken ||
+          result.data?.token ||
+          result.token;
+        const user =
+          result.data?.user ||
+          result.user ||
+          result.data?.registeredUser ||
+          result.data ||
+          result;
+
+        if (!accessToken || !user?._id) {
+          console.warn('Invalid response structure:', result);
+          alert('Registration succeeded!');
+          navigate('/login');
+          return;
+        }
+
+        login(accessToken, user);
+        alert('Registration succeeded!');
+        navigate('/login');
+      } else {
+        console.warn('Backend error:', result);
+        setError('root', { message: result.message || 'Registration failed' });
+      }
+    } catch (error) {
+      console.error('Error registering user:', error);
+      setError('root', { message: 'Failed to register. Please try again.' });
+    }
   };
 
   return (
@@ -29,9 +102,11 @@ const Signup = () => {
           <p className="text-sm text-gray-600">Create your account</p>
         </div>
 
+        {errors.root && <p className="text-red-500 text-center text-sm">{errors.root.message}</p>}
+
         {/* Role Selector */}
         <div className="flex justify-center space-x-2">
-          {['Candidate', 'Company'].map((r) => (
+          {['Candidate', 'Company', 'Admin'].map((r) => (
             <button
               key={r}
               onClick={() => setRole(r.toLowerCase())}
@@ -47,67 +122,84 @@ const Signup = () => {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 text-sm">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-sm">
           <div>
-            <label htmlFor="name" className="block font-medium text-gray-700">
-              {role === 'candidate' ? 'Full Name' : 'Contact Name'}
+            <label htmlFor="fullname" className="block font-medium text-gray-700">
+              Full Name
             </label>
             <input
-              id="name"
+              id="fullname"
+              {...register('fullname', {
+                required: 'Full name is required',
+                minLength: { value: 2, message: 'Full name must be at least 2 characters' },
+              })}
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              placeholder={role === 'candidate' ? 'John Doe' : 'Contact Name'}
+              placeholder="Enter your full name"
               className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
+            {errors.fullname && (
+              <p className="text-red-500 text-sm mt-1">{errors.fullname.message}</p>
+            )}
           </div>
 
           {role === 'company' && (
             <div>
-              <label htmlFor="companyName" className="block font-medium text-gray-700">
+              <label htmlFor="companyname" className="block font-medium text-gray-700">
                 Company Name
               </label>
               <input
-                id="companyName"
+                id="companyname"
+                {...register('companyname', { required: 'Company name is required' })}
                 type="text"
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                required
                 placeholder="Enter your company name"
                 className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
+              {errors.companyname && (
+                <p className="text-red-500 text-sm mt-1">{errors.companyname.message}</p>
+              )}
             </div>
           )}
 
           <div>
-            <label htmlFor="phone" className="block font-medium text-gray-700">
-              Phone Number
+            <label htmlFor="contactnumber" className="block font-medium text-gray-700">
+              Contact Number
             </label>
             <input
-              id="phone"
+              id="contactnumber"
+              {...register('contactnumber', {
+                required: 'Contact number is required',
+                pattern: {
+                  value: /^\+?[1-9]\d{1,14}$/,
+                  message: 'Enter a valid phone number (e.g., +1234567890)',
+                },
+              })}
               type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              required
-              placeholder="Enter your phone number"
+              placeholder="Enter your contact number"
               className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
+            {errors.contactnumber && (
+              <p className="text-red-500 text-sm mt-1">{errors.contactnumber.message}</p>
+            )}
           </div>
 
           <div>
             <label htmlFor="email" className="block font-medium text-gray-700">
-              Email Address
+              Email
             </label>
             <input
               id="email"
+              {...register('email', {
+                required: 'Email is required',
+                pattern: {
+                  value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                  message: 'Enter a valid email address',
+                },
+              })}
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
               placeholder="Enter your email address"
               className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
+            {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
           </div>
 
           <div>
@@ -116,13 +208,17 @@ const Signup = () => {
             </label>
             <input
               id="password"
+              {...register('password', {
+                required: 'Password is required',
+                minLength: { value: 6, message: 'Password must be at least 6 characters' },
+              })}
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
               placeholder="••••••••"
               className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
+            {errors.password && (
+              <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
+            )}
           </div>
 
           <div>
@@ -131,13 +227,14 @@ const Signup = () => {
             </label>
             <input
               id="confirmPassword"
+              {...register('confirmPassword', { required: 'Confirm password is required' })}
               type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
               placeholder="••••••••"
               className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
+            {errors.confirmPassword && (
+              <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>
+            )}
           </div>
 
           <button
