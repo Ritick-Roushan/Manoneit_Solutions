@@ -1,13 +1,15 @@
 import { useState, useContext, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { JobContext } from './Context/JobContext';
 import { AuthContext } from './Context/AuthContext';
 import { FaArrowUp } from 'react-icons/fa';
 
 const Jobs = () => {
-  const { jobs, loading, error, moveToClosed, deleteJob } = useContext(JobContext);
+  const navigate = useNavigate();
+  const { jobs, closedJobs, loading, error, moveToClosed, deleteJob } = useContext(JobContext);
   const { user } = useContext(AuthContext);
+
   const [flippedCard, setFlippedCard] = useState(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [applyLoading, setApplyLoading] = useState({});
@@ -15,42 +17,26 @@ const Jobs = () => {
   const [deleteLoading, setDeleteLoading] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Debug jobs
   useEffect(() => {
-    console.log('Jobs data (Jobs.jsx):', jobs);
-    console.log('Active jobs:', jobs.filter((job) => job.status === 'active'));
-    console.log('Closed jobs:', jobs.filter((job) => job.status === 'closed'));
-    console.log('Loading:', loading, 'Error:', error);
-  }, [jobs, loading, error]);
-
-  // Scroll-to-top visibility
-  useEffect(() => {
-    const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 300);
-    };
+    const handleScroll = () => setShowScrollTop(window.scrollY > 300);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Smooth scroll to top
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
-  // Handle quick apply
   const handleQuickApply = (id) => {
     if (!user) {
-      window.location.href = '/login';
+      navigate('/login');
       return;
     }
     setApplyLoading((prev) => ({ ...prev, [id]: true }));
     setTimeout(() => {
       setApplyLoading((prev) => ({ ...prev, [id]: false }));
-      window.location.href = `/apply/${id}`;
+      navigate(`/apply/${id}`);
     }, 1000);
   };
 
-  // Handle close job
   const handleCloseJob = async (id) => {
     if (!user || user.role !== 'admin') {
       alert('Only admins can close jobs');
@@ -61,39 +47,31 @@ const Jobs = () => {
       await moveToClosed(id);
       setCloseLoading((prev) => ({ ...prev, [id]: false }));
     } catch (error) {
-      console.error('Failed to close job:', error);
+      console.error('Failed to close job:', error.message);
       alert('Failed to close job');
       setCloseLoading((prev) => ({ ...prev, [id]: false }));
     }
   };
 
-  // Handle delete job
   const handleDeleteJob = async (id) => {
     if (!user || user.role !== 'admin') {
       alert('Only admins can delete jobs');
       return;
     }
-    if (!window.confirm('Are you sure you want to delete this job?')) {
-      return;
-    }
+    if (!window.confirm('Are you sure you want to delete this job?')) return;
     setDeleteLoading((prev) => ({ ...prev, [id]: true }));
     try {
       await deleteJob(id);
       setDeleteLoading((prev) => ({ ...prev, [id]: false }));
     } catch (error) {
-      console.error('Failed to delete job:', error);
-      alert('Failed to close job');
+      console.error('Failed to delete job:', error.message);
+      alert('Failed to delete job');
       setDeleteLoading((prev) => ({ ...prev, [id]: false }));
     }
   };
 
-  // Handle search input
-  const handleSearch = (e) => {
-    setSearchQuery(e.target.value);
-    console.log('Search query:', e.target.value);
-  };
+  const handleSearch = (e) => setSearchQuery(e.target.value);
 
-  // Filter active jobs based on search query
   const activeJobs = (jobs || [])
     .filter((job) => job.status === 'active')
     .filter((job) => {
@@ -106,17 +84,6 @@ const Jobs = () => {
         job.description?.toLowerCase().includes(query)
       );
     });
-
-  // Log filtered jobs
-  useEffect(() => {
-    console.log('Filtered active jobs:', activeJobs);
-  }, [activeJobs]);
-
-  // Recently closed jobs (unfiltered)
-  const recentlyClosedJobs = (jobs || [])
-    .filter((job) => job.status === 'closed')
-    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
-    .slice(0, 10);
 
   if (loading) {
     return (
@@ -148,7 +115,6 @@ const Jobs = () => {
             Available Jobs
           </motion.h2>
 
-          {/* Search Box */}
           <div className="mb-8 max-w-lg mx-auto">
             <input
               type="text"
@@ -181,7 +147,7 @@ const Jobs = () => {
                         animate={{ rotateY: 0, opacity: 1 }}
                         exit={{ rotateY: -180, opacity: 0 }}
                         transition={{ duration: 0.5 }}
-                        className="absolute inset-0 p-6 flex flex-col justify-between"
+                        className="absolute inset-0 p-6 flex flex-col justify-between bg-white rounded-xl"
                       >
                         <div>
                           <h3 className="text-xl font-semibold text-gray-800 mb-2">
@@ -301,7 +267,7 @@ const Jobs = () => {
         </div>
       </section>
 
-      {/* Recently Closed Jobs Section */}
+      {/* Recently Closed Jobs */}
       <section className="py-16 bg-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.h2
@@ -318,8 +284,8 @@ const Jobs = () => {
             transition={{ duration: 0.8 }}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
           >
-            {recentlyClosedJobs.length > 0 ? (
-              recentlyClosedJobs.map((job) => (
+            {closedJobs.length > 0 ? (
+              closedJobs.map((job) => (
                 <motion.div
                   key={job._id}
                   className="relative bg-white rounded-xl p-6 shadow-lg hover:shadow-xl"
@@ -333,9 +299,7 @@ const Jobs = () => {
                       className="w-12 h-12 rounded-full object-cover mr-4"
                     />
                     <div>
-                      <h3 className="text-xl font-semibold text-gray-800">
-                        {job.jobTitle}
-                      </h3>
+                      <h3 className="text-xl font-semibold text-gray-800">{job.jobTitle}</h3>
                       <p className="text-gray-600">{job.company}</p>
                     </div>
                   </div>
@@ -362,7 +326,7 @@ const Jobs = () => {
         </div>
       </section>
 
-      {/* Scroll-to-Top Button */}
+      {/* Scroll to Top Button */}
       <AnimatePresence>
         {showScrollTop && (
           <motion.button

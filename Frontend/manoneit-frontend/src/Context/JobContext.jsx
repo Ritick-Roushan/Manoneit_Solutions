@@ -1,109 +1,128 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
-import { AuthContext } from './AuthContext';
 
 export const JobContext = createContext();
 
 export const JobProvider = ({ children }) => {
-  const { token } = useContext(AuthContext);
   const [jobs, setJobs] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [closedJobs, setClosedJobs] = useState([]);
+  const [jobsLoading, setJobsLoading] = useState(false);
+  const [closedJobsLoading, setClosedJobsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const maxRetries = 3;
+  const retryDelay = 2000; // 2 seconds
+
+  const fetchJobs = async () => {
+    setJobsLoading(true);
+    try {
+      const response = await axios.get('http://localhost:8000/api/v1/users/jobs/getAllJobs', {
+        withCredentials: true,
+      });
+      setJobs(response.data.data || []);
+      setError(null);
+      setRetryCount(0);
+    } catch (err) {
+      console.error('Error fetching jobs:', err.response?.data || err.message);
+      const errorMsg = err.response?.data?.message || 'Failed to fetch jobs';
+      setError(errorMsg);
+      if (retryCount < maxRetries) {
+        setTimeout(() => {
+          setRetryCount((prev) => prev + 1);
+          fetchJobs();
+        }, retryDelay);
+      }
+    } finally {
+      setJobsLoading(false);
+    }
+  };
+
+  const fetchClosedJobs = async () => {
+    setClosedJobsLoading(true);
+    try {
+      const response = await axios.get('http://localhost:8000/api/v1/users/jobs/getClosedJobs', {
+        withCredentials: true,
+      });
+      setClosedJobs(response.data.data || []);
+      setError(null);
+      setRetryCount(0);
+    } catch (err) {
+      console.error('Error fetching closed jobs:', err.response?.data || err.message);
+      const errorMsg = err.response?.data?.message || 'Failed to fetch closed jobs';
+      setError(errorMsg);
+      if (retryCount < maxRetries) {
+        setTimeout(() => {
+          setRetryCount((prev) => prev + 1);
+          fetchClosedJobs();
+        }, retryDelay);
+      }
+    } finally {
+      setClosedJobsLoading(false);
+    }
+  };
+
+  const moveToClosed = async (id) => {
+    try {
+      const response = await axios.patch(
+        `http://localhost:8000/api/v1/users/jobs/closeJob/${id}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
+          withCredentials: true,
+        }
+      );
+      const updatedJob = response.data.data;
+      setJobs((prevJobs) =>
+        prevJobs.map((job) => (job._id === id ? { ...job, status: 'closed', updatedAt: updatedJob.updatedAt } : job))
+      );
+      setClosedJobs((prev) => {
+        const existingIndex = prev.findIndex((job) => job._id === id);
+        if (existingIndex !== -1) {
+          const updated = [...prev];
+          updated[existingIndex] = updatedJob;
+          return updated.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+        }
+        return [updatedJob, ...prev.slice(0, 9)].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      });
+    } catch (err) {
+      console.error('Error closing job:', err.response?.data || err.message);
+      throw new Error(err.response?.data?.message || 'Failed to close job');
+    }
+  };
+
+  const deleteJob = async (id) => {
+    try {
+      await axios.delete(`http://localhost:8000/api/v1/users/jobs/deleteJob/${id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
+        withCredentials: true,
+      });
+      setJobs((prevJobs) => prevJobs.filter((job) => job._id !== id));
+      setClosedJobs((prevJobs) => prevJobs.filter((job) => job._id !== id));
+    } catch (err) {
+      console.error('Error deleting job:', err.response?.data || err.message);
+      throw new Error(err.response?.data?.message || 'Failed to delete job');
+    }
+  };
 
   useEffect(() => {
     fetchJobs();
-  }, [token]);
-
-  const fetchJobs = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const response = await axios.get('http://localhost:8000/api/v1/users/getAllJobs', {
-        headers,
-      });
-      console.log('Fetched jobs response:', response.data);
-      const jobData = response.data.data || response.data || [];
-      if (!Array.isArray(jobData)) {
-        throw new Error('Invalid job data format');
-      }
-      setJobs(jobData);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching jobs:', error.response?.data || error.message);
-      setError(error.response?.data?.message || 'Failed to fetch jobs');
-      setJobs([]);
-      setLoading(false);
-    }
-  };
-
-  const addJob = async (job) => {
-    try {
-      if (!token) throw new Error('No token available');
-      const response = await axios.post(
-        'http://localhost:8000/api/v1/users/createJob',
-        job,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      console.log('Added job:', response.data.data);
-      setJobs((prev) => [...prev, response.data.data]);
-      return response.data.data;
-    } catch (error) {
-      console.error('Error adding job:', error.response?.data || error.message);
-      throw error.response?.data || error;
-    }
-  };
-
-  const moveToClosed = async (jobId) => {
-    try {
-      if (!token) throw new Error('No token available');
-      const response = await axios.patch(
-        `http://localhost:8000/api/v1/users/closeJob/${jobId}`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      console.log('Closed job:', response.data.data);
-      // Update job status to 'closed'
-      setJobs((prev) => {
-        const updatedJobs = prev.map((job) =>
-          job._id === jobId ? { ...job, status: 'closed' } : job
-        );
-        console.log('Updated jobs state:', updatedJobs); // Debug
-        return updatedJobs;
-      });
-      return response.data.data;
-    } catch (error) {
-      console.error('Error closing job:', error.response?.data || error.message);
-      throw error.response?.data?.message || error.message;
-    }
-  };
-
-  const deleteJob = async (jobId) => {
-    try {
-      if (!token) throw new Error('No token available');
-      await axios.delete(`http://localhost:8000/api/v1/users/deleteJob/${jobId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      console.log('Deleted job:', jobId);
-      setJobs((prev) => prev.filter((job) => job._id !== jobId));
-    } catch (error) {
-      console.error('Error deleting job:', error.response?.data || error.message);
-      throw error.response?.data || error;
-    }
-  };
+    fetchClosedJobs();
+  }, []);
 
   return (
-    <JobContext.Provider value={{ jobs, addJob, moveToClosed, deleteJob, loading, error }}>
+    <JobContext.Provider
+      value={{
+        jobs,
+        closedJobs,
+        jobsLoading,
+        closedJobsLoading,
+        error,
+        moveToClosed,
+        deleteJob,
+        fetchJobs,
+        fetchClosedJobs,
+      }}
+    >
       {children}
     </JobContext.Provider>
   );

@@ -6,7 +6,7 @@ import { JobContext } from '../Context/JobContext';
 import { FaBriefcase, FaUsers, FaUserTie, FaArchive, FaLink } from 'react-icons/fa';
 import axios from 'axios';
 
-const Dashboard = () => {
+const AdminDashboard = () => {
   const { user, token } = useContext(AuthContext);
   const { jobs, loading: jobsLoading, error: jobsError } = useContext(JobContext);
   const navigate = useNavigate();
@@ -36,7 +36,6 @@ const Dashboard = () => {
         const response = await axios.get('http://localhost:8000/api/v1/users/get-user-stats', {
           headers: { Authorization: `Bearer ${token}` },
         });
-        console.log('User stats response:', response.data);
         setUserStats({
           totalUsers: response.data.data.totalUsers || 0,
           clients: response.data.data.clients || 0,
@@ -44,8 +43,7 @@ const Dashboard = () => {
         });
         setUserStatsLoading(false);
       } catch (error) {
-        console.error('Error fetching user stats:', error.response?.data || error.message);
-        setUserStatsError(error.response?.data?.message || 'Failed to fetch user stats');
+        setUserStatsError('Failed to fetch user stats');
         setUserStatsLoading(false);
       }
     };
@@ -64,16 +62,6 @@ const Dashboard = () => {
     .filter((job) => job.status === 'active')
     .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
     .slice(0, 5);
-
-  // Debug metrics
-  useEffect(() => {
-    console.log('Dashboard metrics:', {
-      activeJobsCount,
-      closedJobsCount,
-      userStats,
-      recentJobs,
-    });
-  }, [activeJobsCount, closedJobsCount, userStats, recentJobs]);
 
   if (!user || user.role !== 'admin') {
     return null; // Redirect handled by useEffect
@@ -225,6 +213,12 @@ const Dashboard = () => {
                         >
                           <FaLink className="mr-1" /> View
                         </Link>
+                        <Link
+                          to={`/jobs/${job._id}/applicants`}
+                          className="ml-4 text-green-600 hover:underline flex items-center"
+                        >
+                          View Applicants
+                        </Link>
                       </td>
                     </tr>
                   ))}
@@ -235,25 +229,9 @@ const Dashboard = () => {
             <p className="text-gray-600">No recent active jobs found.</p>
           )}
         </motion.div>
-
-        {/* Navigation Links */}
-        <div className="mt-8 text-center">
-          <Link
-            to="/jobs"
-            className="inline-block bg-blue-600 text-white px-6 py-3 rounded-full font-medium hover:bg-blue-700 transition-colors duration-300 mr-4"
-          >
-            View All Jobs
-          </Link>
-          <Link
-            to="/post-job"
-            className="inline-block bg-green-600 text-white px-6 py-3 rounded-full font-medium hover:bg-green-700 transition-colors duration-300"
-          >
-            Post New Job
-          </Link>
-        </div>
       </div>
     </div>
   );
 };
 
-export default Dashboard;
+export default AdminDashboard;

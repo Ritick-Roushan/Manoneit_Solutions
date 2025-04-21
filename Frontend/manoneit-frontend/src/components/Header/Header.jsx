@@ -5,6 +5,7 @@ import axios from 'axios';
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -21,6 +22,7 @@ const Header = () => {
       );
       logout();
       setIsOpen(false);
+      setIsProfileOpen(false);
       navigate('/login');
     } catch (error) {
       console.error('Logout failed:', error.response?.data?.message || error.message);
@@ -30,6 +32,8 @@ const Header = () => {
   const handleNavClick = (path) => {
     console.log('Navigating to:', path);
     setIsOpen(false);
+    setIsProfileOpen(false);
+    navigate(path);
   };
 
   return (
@@ -46,7 +50,7 @@ const Header = () => {
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-10">
+          <nav className="hidden md:flex items-center space-x-10">
             {['Home', 'Jobs', 'Clients', 'Contact'].map((item) => (
               <Link
                 key={item}
@@ -67,13 +71,40 @@ const Header = () => {
                   Post Job
                 </Link>
                 <Link
-                  to="/admin/dashboard"
-                  onClick={() => handleNavClick('/admin/dashboard')}
+                  to="/admin-dashboard"
+                  onClick={() => handleNavClick('/admin-dashboard')}
                   className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300"
                 >
                   Dashboard
                 </Link>
               </>
+            )}
+            {user?.role === 'client' && (
+              <>
+                <Link
+                  to="/post-job"
+                  onClick={() => handleNavClick('/post-job')}
+                  className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300"
+                >
+                  Post Job
+                </Link>
+                <Link
+                  to="/company-dashboard"
+                  onClick={() => handleNavClick('/company-dashboard')}
+                  className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300"
+                >
+                  Dashboard
+                </Link>
+              </>
+            )}
+            {user?.role === 'candidate' && (
+              <Link
+                to="/dashboard"
+                onClick={() => handleNavClick('/dashboard')}
+                className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300"
+              >
+                Dashboard
+              </Link>
             )}
             {!user ? (
               <>
@@ -93,25 +124,56 @@ const Header = () => {
                 </Link>
               </>
             ) : (
-              <button
-                onClick={handleLogout}
-                className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300"
-              >
-                Logout
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  className="flex items-center space-x-2 text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300"
+                >
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
+                </button>
+                {isProfileOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                    <div className="px-4 py-2 text-sm text-gray-700 font-medium border-b">
+                      {user.email}
+                    </div>
+                    <Link
+                      to="/profile"
+                      onClick={() => handleNavClick('/profile')}
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      Personal Information
+                    </Link>
+                    <Link
+                      to="/change-password"
+                      onClick={() => handleNavClick('/change-password')}
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      Change Password
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </nav>
-
-          {/* CTA Button */}
-          <div className="hidden md:block">
-            <Link
-              to={user ? '/admin/dashboard' : '/signup'}
-              onClick={() => handleNavClick(user ? '/admin/dashboard' : '/signup')}
-              className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-5 py-2 rounded-full font-semibold hover:scale-105 transition-transform duration-300"
-            >
-              {user ? 'Dashboard' : 'Get Started'}
-            </Link>
-          </div>
 
           {/* Mobile Menu Button */}
           <div className="md:hidden">
@@ -161,13 +223,40 @@ const Header = () => {
                     Post Job
                   </Link>
                   <Link
-                    to="/admin/dashboard"
-                    onClick={() => handleNavClick('/admin/dashboard')}
+                    to="/admin-dashboard"
+                    onClick={() => handleNavClick('/admin-dashboard')}
                     className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300"
                   >
                     Dashboard
                   </Link>
                 </>
+              )}
+              {user?.role === 'client' && (
+                <>
+                  <Link
+                    to="/post-job"
+                    onClick={() => handleNavClick('/post-job')}
+                    className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300"
+                  >
+                    Post Job
+                  </Link>
+                  <Link
+                    to="/company-dashboard"
+                    onClick={() => handleNavClick('/company-dashboard')}
+                    className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300"
+                  >
+                    Dashboard
+                  </Link>
+                </>
+              )}
+              {user?.role === 'candidate' && (
+                <Link
+                  to="/dashboard"
+                  onClick={() => handleNavClick('/dashboard')}
+                  className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300"
+                >
+                  Dashboard
+                </Link>
               )}
               {!user ? (
                 <>
@@ -187,20 +276,30 @@ const Header = () => {
                   </Link>
                 </>
               ) : (
-                <button
-                  onClick={handleLogout}
-                  className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300 text-left"
-                >
-                  Logout
-                </button>
+                <>
+                  <div className="text-gray-700 text-lg font-medium">{user.email}</div>
+                  <Link
+                    to="/profile"
+                    onClick={() => handleNavClick('/profile')}
+                    className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300"
+                  >
+                    Personal Information
+                  </Link>
+                  <Link
+                    to="/change-password"
+                    onClick={() => handleNavClick('/change-password')}
+                    className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300"
+                  >
+                    Change Password
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="text-gray-700 text-lg font-medium hover:text-blue-500 transition-colors duration-300 text-left"
+                  >
+                    Logout
+                  </button>
+                </>
               )}
-              <Link
-                to={user ? '/admin/dashboard' : '/signup'}
-                onClick={() => handleNavClick(user ? '/admin/dashboard' : '/signup')}
-                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-5 py-2 rounded-full font-semibold hover:scale-105 transition-transform duration-300 text-center"
-              >
-                {user ? 'Dashboard' : 'Get Started'}
-              </Link>
             </nav>
           </div>
         )}

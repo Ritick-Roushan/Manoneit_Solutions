@@ -1,11 +1,12 @@
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import { AuthContext } from './Context/AuthContext';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { loginWithToken } = useContext(AuthContext); // ✅ FIXED
+  const { loginWithToken } = useContext(AuthContext);
+  const [serverError, setServerError] = useState(null);
 
   const {
     register,
@@ -21,27 +22,39 @@ const Login = () => {
 
   const onSubmit = async (data) => {
     try {
+      setServerError(null);
       const response = await fetch('http://localhost:8000/api/v1/users/login', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
-        credentials: 'include',  // This ensures cookies are sent with the request
+        credentials: 'include',
       });
 
       const result = await response.json();
 
       if (response.ok) {
-        const { accessToken } = result.data;
-        loginWithToken(accessToken); // ✅ FIXED, save the token in context or localStorage
-        navigate('/admin/dashboard'); // Redirect to the dashboard after successful login
+        const { accessToken, user } = result.data;
+        if (!user?.role) {
+          throw new Error('User role not provided');
+        }
+        loginWithToken(accessToken, user); // Store token and user data
+        // Redirect based on role
+        const redirectPath =
+          user.role === 'admin'
+            ? '/admin-dashboard'
+            : user.role === 'client'
+            ? '/company-dashboard'
+            : '/dashboard';
+        console.log(`Redirecting to ${redirectPath} for role: ${user.role}`);
+        navigate(redirectPath);
       } else {
-        setError('root', { message: result.message || 'Login failed' });
+        setError('root', { message: result.message || 'Invalid email or password' });
       }
     } catch (error) {
-      console.error('Error logging in:', error);
-      setError('root', { message: 'Failed to login. Please try again.' });
+      console.error('Error logging in:', error.message);
+      setServerError('Failed to login. Please try again.');
     }
   };
 
@@ -56,6 +69,7 @@ const Login = () => {
         </div>
 
         {errors.root && <p className="text-red-500 text-center text-sm">{errors.root.message}</p>}
+        {serverError && <p className="text-red-500 text-center text-sm">{serverError}</p>}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
@@ -64,7 +78,13 @@ const Login = () => {
             </label>
             <input
               id="email"
-              {...register('email', { required: 'Email is required' })}
+              {...register('email', {
+                required: 'Email is required',
+                pattern: {
+                  value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                  message: 'Invalid email address',
+                },
+              })}
               type="email"
               placeholder="Enter your email"
               className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all duration-300"
@@ -78,7 +98,10 @@ const Login = () => {
             </label>
             <input
               id="password"
-              {...register('password', { required: 'Password is required' })}
+              {...register('password', {
+                required: 'Password is required',
+                minLength: { value: 6, message: 'Password must be at least 6 characters' },
+              })}
               type="password"
               placeholder="Enter your password"
               className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all duration-300"

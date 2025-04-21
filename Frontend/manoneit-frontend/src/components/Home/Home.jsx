@@ -11,71 +11,31 @@ import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 
 const Home = () => {
-  const { jobs, loading, error } = useContext(JobContext);
+  const { jobs, closedJobs, loading, error } = useContext(JobContext);
   const { user } = useContext(AuthContext);
   const [flippedCard, setFlippedCard] = useState(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [modalClient, setModalClient] = useState(null);
   const [applyLoading, setApplyLoading] = useState({});
-  const [init, setInit] = useState(false);
+  const [particlesInit, setParticlesInit] = useState(false);
 
   // Debug jobs
   useEffect(() => {
-    console.log('Jobs data (Home.jsx):', jobs);
+    console.log('Jobs data (Home.jsx):', { jobs, closedJobs });
     console.log('Featured jobs:', jobs.filter((job) => job.status === 'active').slice(0, 3));
-    console.log('Closed jobs:', jobs.filter((job) => job.status === 'closed'));
+    console.log('Closed jobs:', closedJobs);
     console.log('Loading:', loading, 'Error:', error);
-  }, [jobs, loading, error]);
+  }, [jobs, closedJobs, loading, error]);
 
   // Initialize particles
-  useEffect(() => {
-    loadSlim()
-      .then(() => setInit(true))
-      .catch((err) => console.error('Particles failed to load:', err));
-  }, []);
-
-  // Particle config
-  const particlesConfig = useMemo(
-    () => ({
-      particles: {
-        number: { value: 80, density: { enable: true, value_area: 800 } },
-        color: { value: ['#3B82F6', '#9333EA'] },
-        shape: { type: 'circle' },
-        opacity: { value: 0.5, random: true },
-        size: { value: 3, random: true },
-        line_linked: {
-          enable: true,
-          distance: 150,
-          color: '#ffffff',
-          opacity: 0.4,
-          width: 1,
-        },
-        move: {
-          enable: true,
-          speed: 2,
-          direction: 'none',
-          random: false,
-          straight: false,
-          out_mode: 'out',
-          bounce: false,
-        },
-      },
-      interactivity: {
-        detect_on: 'canvas',
-        events: {
-          onhover: { enable: true, mode: 'grab' },
-          onclick: { enable: true, mode: 'push' },
-          resize: true,
-        },
-        modes: {
-          grab: { distance: 140, line_linked: { opacity: 1 } },
-          push: { particles_nb: 4 },
-        },
-      },
-      retina_detect: true,
-    }),
-    []
-  );
+  const initParticles = async (engine) => {
+    try {
+      await loadSlim(engine);
+      setParticlesInit(true);
+    } catch (err) {
+      console.error('Particles failed to load:', err);
+    }
+  };
 
   // Featured jobs (only active)
   const featuredJobs = (jobs || [])
@@ -194,10 +154,48 @@ const Home = () => {
     <div className="relative">
       {/* Hero Section */}
       <section className="relative py-32 text-white overflow-hidden">
-        {init && (
+        {particlesInit && (
           <Particles
             id="tsparticles"
-            options={particlesConfig}
+            init={initParticles}
+            options={{
+              particles: {
+                number: { value: 80, density: { enable: true, value_area: 800 } },
+                color: { value: ['#3B82F6', '#9333EA'] },
+                shape: { type: 'circle' },
+                opacity: { value: 0.5, random: true },
+                size: { value: 3, random: true },
+                line_linked: {
+                  enable: true,
+                  distance: 150,
+                  color: '#ffffff',
+                  opacity: 0.4,
+                  width: 1,
+                },
+                move: {
+                  enable: true,
+                  speed: 2,
+                  direction: 'none',
+                  random: false,
+                  straight: false,
+                  out_mode: 'out',
+                  bounce: false,
+                },
+              },
+              interactivity: {
+                detect_on: 'canvas',
+                events: {
+                  onhover: { enable: true, mode: 'grab' },
+                  onclick: { enable: true, mode: 'push' },
+                  resize: true,
+                },
+                modes: {
+                  grab: { distance: 140, line_linked: { opacity: 1 } },
+                  push: { particles_nb: 4 },
+                },
+              },
+              retina_detect: true,
+            }}
             className="absolute inset-0 z-0"
             aria-hidden="true"
           />
@@ -249,7 +247,7 @@ const Home = () => {
                 Find pre-screened, top-tier talent to fill your open positions quickly and efficiently.
               </p>
               <Link
-                to={user && user.role === 'admin' ? '/post-job' : '/signup'}
+                to={user && ['admin', 'client'].includes(user.role) ? '/post-job' : '/signup'}
                 className="bg-white text-blue-600 px-6 py-3 rounded-full font-semibold hover:bg-gray-100 hover:scale-105 transition-transform duration-300"
               >
                 Hire Top Talent
@@ -362,6 +360,60 @@ const Home = () => {
           </div>
         </div>
       </section>
+
+      {/* Recently Closed Jobs Section */}
+      {/* <section className="py-16 bg-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="text-3xl md:text-4xl font-bold text-center mb-12 text-gray-800"
+          >
+            Recently Closed Jobs
+          </motion.h2>
+          {loading ? (
+            <p className="text-center text-gray-600">Loading closed jobs...</p>
+          ) : error ? (
+            <p className="text-center text-red-500">{error}</p>
+          ) : closedJobs.length > 0 ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              transition={{ duration: 0.8 }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+            >
+              {closedJobs.map((job) => (
+                <motion.div
+                  key={job._id}
+                  className="relative bg-white rounded-xl p-6 shadow-lg hover:shadow-xl"
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="flex items-center mb-4">
+                    <img
+                      src={job.image || 'https://via.placeholder.com/48'}
+                      alt={job.jobTitle}
+                      className="w-12 h-12 rounded-full object-cover mr-4"
+                    />
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-800">{job.jobTitle}</h3>
+                      <p className="text-gray-600">{job.company}</p>
+                    </div>
+                  </div>
+                  <p className="text-gray-500 text-sm mb-2">{job.location}</p>
+                  <p className="text-gray-500 text-sm mb-4">{job.jobType}</p>
+                  <p className="text-red-500 text-sm font-medium mb-4">
+                    Closed on {new Date(job.updatedAt).toLocaleDateString()}
+                  </p>
+                </motion.div>
+              ))}
+            </motion.div>
+          ) : (
+            <p className="text-center text-gray-600 col-span-full">No recently closed jobs.</p>
+          )}
+        </div>
+      </section> */}
 
       {/* Client Logos Section */}
       <section className="bg-white py-16">

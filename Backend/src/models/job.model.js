@@ -48,10 +48,20 @@ const jobSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: {
-        values: ['active', 'closed', 'draft'],
+        values: ['pending', 'active', 'closed'], // Replaced 'draft' with 'pending'
         message: '{VALUE} is not a valid status',
       },
-      default: 'active',
+      default: 'pending', // Default for company-created jobs
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: [true, 'Creator is required'],
+    },
+    applicants: {
+      type: Number,
+      default: 0,
+      min: [0, 'Applicants cannot be negative'],
     },
   },
   { timestamps: true }
