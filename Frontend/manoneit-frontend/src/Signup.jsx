@@ -1,257 +1,432 @@
-import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router-dom';
-import { useContext, useState } from 'react';
-import { AuthContext } from './Context/AuthContext';
+import { useState } from 'react';
+import axios from 'axios';
 
 const Signup = () => {
-  const [role, setRole] = useState('candidate');
-  const navigate = useNavigate();
-  const { login } = useContext(AuthContext);
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    setError,
-    watch,
-  } = useForm({
-    defaultValues: {
-      fullname: '',
-      email: '',
-      contactnumber: '',
-      companyname: '',
-      password: '',
-      confirmPassword: '',
-    },
+  const [formData, setFormData] = useState({
+    fullname: '',
+    email: '',
+    contactnumber: '',
+    password: '',
+    role: 'candidate',
+    companyname: '',
+    otp: '',
   });
 
-  const password = watch('password');
+  const [otpSent, setOtpSent] = useState(false);
+  const [loadingOtp, setLoadingOtp] = useState(false);
+  const [loadingSignup, setLoadingSignup] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false); // New state for success
 
-  const onSubmit = async (data) => {
-    // Validate password match
-    if (data.password !== data.confirmPassword) {
-      setError('confirmPassword', { message: 'Passwords do not match' });
-      return;
-    }
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
-    // Prepare user data
-    const userData = {
-      fullname: data.fullname,
-      email: data.email,
-      contactnumber: data.contactnumber,
-      role,
-      password: data.password,
-      ...(role === 'company' && data.companyname && { companyname: data.companyname }),
-    };
-
+  const handleSendOtp = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/v1/users/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userData),
-      });
-
-      const result = await response.json();
-      console.log('Signup response:', {
-        status: response.status,
-        headers: Object.fromEntries(response.headers.entries()),
-        body: result,
-      });
-
-      // Handle success (200 or 201)
-      if (response.status === 200 || response.status === 201) {
-        // Try various response structures
-        const accessToken =
-          result.data?.accessToken ||
-          result.accessToken ||
-          result.data?.token ||
-          result.token;
-        const user =
-          result.data?.user ||
-          result.user ||
-          result.data?.registeredUser ||
-          result.data ||
-          result;
-
-        if (!accessToken || !user?._id) {
-          console.warn('Invalid response structure:', result);
-          alert('Registration succeeded!');
-          navigate('/login');
-          return;
-        }
-
-        login(accessToken, user);
-        alert('Registration succeeded!');
-        navigate('/login');
-      } else {
-        console.warn('Backend error:', result);
-        setError('root', { message: result.message || 'Registration failed' });
-      }
-    } catch (error) {
-      console.error('Error registering user:', error);
-      setError('root', { message: 'Failed to register. Please try again.' });
+      setLoadingOtp(true);
+      setError('');
+      const res = await axios.post('http://localhost:8000/api/v1/users/send-otp', { email: formData.email });
+      console.log('🟢 OTP API full response:', res.data);
+      setOtpSent(true);
+    } catch (err) {
+      console.error('🔴 Failed to send OTP:', err.response?.data || err.message);
+      setError(err.response?.data?.error || 'Failed to send OTP. Please try again.');
+    } finally {
+      setLoadingOtp(false);
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-white/90 backdrop-blur-lg rounded-2xl shadow-xl p-6 sm:p-8 space-y-6">
-        <div className="text-center space-y-1">
-          <h2 className="text-2xl sm:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600">
-            Join Manoneit Solutions
-          </h2>
-          <p className="text-sm text-gray-600">Create your account</p>
-        </div>
+  const handleRegister = async () => {
+    try {
+      setLoadingSignup(true);
+      setError('');
 
-        {errors.root && <p className="text-red-500 text-center text-sm">{errors.root.message}</p>}
+      const res = await axios.post('http://localhost:8000/api/v1/users/register', formData);
 
-        {/* Role Selector */}
-        <div className="flex justify-center space-x-2">
-          {['Candidate', 'Company', 'Admin'].map((r) => (
-            <button
-              key={r}
-              onClick={() => setRole(r.toLowerCase())}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${
-                role === r.toLowerCase()
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
+      console.log('✅ Registration success:', res.data);
+      setSuccess(true); // Show success state
+      setFormData({
+        fullname: '',
+        email: '',
+        contactnumber: '',
+        password: '',
+        role: 'candidate',
+        companyname: '',
+        otp: '',
+      }); // Reset form
+      setOtpSent(false); // Reset OTP state
+    } catch (err) {
+      console.error('❌ Registration failed:', err.response?.data || err.message);
+      setError(err.response?.data?.error || 'Registration failed');
+    } finally {
+      setLoadingSignup(false);
+    }
+  };
+
+  // Reset success state to allow re-registration
+  const handleTryAgain = () => {
+    setSuccess(false);
+    setError('');
+  };
+
+  if (success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-200 via-purple-100 to-green-200 p-4">
+        <div className="max-w-md w-full bg-white/80 backdrop-blur-lg rounded-2xl shadow-2xl p-8 text-center">
+          <div className="flex justify-center mb-6">
+            <svg
+              className="h-16 w-16 text-green-500 animate-bounce"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
             >
-              {r}
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Registration Successful!</h2>
+          <p className="text-gray-600 mb-6">
+            Your account has been created. You can now log in to continue.
+          </p>
+          <div className="flex gap-4 justify-center">
+            <a
+              href="/login"
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              Go to Login
+            </a>
+            <button
+              onClick={handleTryAgain}
+              className="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition duration-200"
+            >
+              Register Another
             </button>
-          ))}
+          </div>
         </div>
+      </div>
+    );
+  }
 
-        {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-sm">
-          <div>
-            <label htmlFor="fullname" className="block font-medium text-gray-700">
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-200 via-purple-100 to-green-200 p-4 relative overflow-hidden">
+      {/* Wave Background */}
+      <div className="absolute inset-0 opacity-20">
+        <svg className="w-full h-full" viewBox="0 0 1440 320" preserveAspectRatio="none">
+          <path
+            fill="#ffffff"
+            fillOpacity="0.3"
+            d="M0,224L48,213.3C96,203,192,181,288,186.7C384,192,480,224,576,213.3C672,203,768,149,864,149.3C960,149,1056,203,1152,213.3C1248,224,1344,192,1392,176L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"
+          ></path>
+        </svg>
+      </div>
+
+      <div className="max-w-md w-full bg-white/80 backdrop-blur-lg rounded-2xl shadow-2xl p-8 z-10 transform transition-all duration-500 hover:shadow-3xl">
+        <h2 className="text-3xl font-extrabold text-center text-gray-800 mb-8">
+          <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-green-600">
+            Join Us Today
+          </span>
+        </h2>
+
+        {error && (
+          <div className="mb-6 p-3 bg-red-100 text-red-700 rounded-lg flex items-center gap-2 animate-fade-in">
+            <svg
+              className="h-5 w-5"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            {error}
+          </div>
+        )}
+
+        <form className="space-y-6">
+          {/* Full Name */}
+          <div className="relative">
+            <input
+              type="text"
+              name="fullname"
+              id="fullname"
+              value={formData.fullname}
+              onChange={handleChange}
+              className="peer w-full p-3 pt-5 border border-gray-200 rounded-lg bg-transparent text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+              placeholder="Full Name"
+              required
+            />
+            <label
+              htmlFor="fullname"
+              className="absolute left-3 top-1 text-sm text-gray-500 transition-all duration-200 peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-focus:top-1 peer-focus:text-sm peer-focus:text-gray-500"
+            >
               Full Name
             </label>
+          </div>
+
+          {/* Email */}
+          <div className="relative">
             <input
-              id="fullname"
-              {...register('fullname', {
-                required: 'Full name is required',
-                minLength: { value: 2, message: 'Full name must be at least 2 characters' },
-              })}
-              type="text"
-              placeholder="Enter your full name"
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              type="email"
+              name="email"
+              id="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="peer w-full p-3 pt-5 border border-gray-200 rounded-lg bg-transparent text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+              placeholder="Email Address"
+              required
             />
-            {errors.fullname && (
-              <p className="text-red-500 text-sm mt-1">{errors.fullname.message}</p>
+            <label
+              htmlFor="email"
+              className="absolute left-3 top-1 text-sm text-gray-500 transition-all duration-200 peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-focus:top-1 peer-focus:text-sm peer-focus:text-gray-500"
+            >
+              Email Address
+            </label>
+          </div>
+
+          {/* Send OTP Button */}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleSendOtp}
+              disabled={loadingOtp || !formData.email}
+              className={`flex-1 px-4 py-3 rounded-lg text-white font-medium transition duration-300 transform hover:scale-105 ${
+                loadingOtp || !formData.email
+                  ? 'bg-blue-300 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
+              }`}
+            >
+              {loadingOtp ? (
+                <span className="flex items-center justify-center">
+                  <svg
+                    className="animate-spin h-5 w-5 mr-2 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z"
+                    ></path>
+                  </svg>
+                  Sending OTP...
+                </span>
+              ) : (
+                'Send OTP'
+              )}
+            </button>
+            {otpSent && (
+              <span className="text-green-600 font-medium animate-pulse">OTP Sent!</span>
             )}
           </div>
 
-          {role === 'company' && (
-            <div>
-              <label htmlFor="companyname" className="block font-medium text-gray-700">
-                Company Name
-              </label>
+          {/* OTP */}
+          {otpSent && (
+            <div className="relative">
               <input
-                id="companyname"
-                {...register('companyname', { required: 'Company name is required' })}
                 type="text"
-                placeholder="Enter your company name"
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                name="otp"
+                id="otp"
+                value={formData.otp}
+                onChange={handleChange}
+                className="peer w-full p-3 pt-5 border border-gray-200 rounded-lg bg-transparent text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                placeholder="OTP"
+                required
               />
-              {errors.companyname && (
-                <p className="text-red-500 text-sm mt-1">{errors.companyname.message}</p>
-              )}
+              <label
+                htmlFor="otp"
+                className="absolute left-3 top-1 text-sm text-gray-500 transition-all duration-200 peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-focus:top-1 peer-focus:text-sm peer-focus:text-gray-500"
+              >
+                OTP
+              </label>
             </div>
           )}
 
-          <div>
-            <label htmlFor="contactnumber" className="block font-medium text-gray-700">
+          {/* Contact Number */}
+          <div className="relative">
+            <input
+              type="text"
+              name="contactnumber"
+              id="contactnumber"
+              value={formData.contactnumber}
+              onChange={handleChange}
+              className="peer w-full p-3 pt-5 border border-gray-200 rounded-lg bg-transparent text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+              placeholder="Contact Number"
+              required
+            />
+            <label
+              htmlFor="contactnumber"
+              className="absolute left-3 top-1 text-sm text-gray-500 transition-all duration-200 peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-focus:top-1 peer-focus:text-sm peer-focus:text-gray-500"
+            >
               Contact Number
             </label>
-            <input
-              id="contactnumber"
-              {...register('contactnumber', {
-                required: 'Contact number is required',
-                pattern: {
-                  value: /^\+?[1-9]\d{1,14}$/,
-                  message: 'Enter a valid phone number (e.g., +1234567890)',
-                },
-              })}
-              type="tel"
-              placeholder="Enter your contact number"
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            />
-            {errors.contactnumber && (
-              <p className="text-red-500 text-sm mt-1">{errors.contactnumber.message}</p>
-            )}
           </div>
 
-          <div>
-            <label htmlFor="email" className="block font-medium text-gray-700">
-              Email
-            </label>
+          {/* Password */}
+          <div className="relative">
             <input
-              id="email"
-              {...register('email', {
-                required: 'Email is required',
-                pattern: {
-                  value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                  message: 'Enter a valid email address',
-                },
-              })}
-              type="email"
-              placeholder="Enter your email address"
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              type="password"
+              name="password"
+              id="password"
+              value={formData.password}
+              onChange={handleChange}
+              className="peer w-full p-3 pt-5 border border-gray-200 rounded-lg bg-transparent text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+              placeholder="Password"
+              required
             />
-            {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
-          </div>
-
-          <div>
-            <label htmlFor="password" className="block font-medium text-gray-700">
+            <label
+              htmlFor="password"
+              className="absolute left-3 top-1 text-sm text-gray-500 transition-all duration-200 peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-focus:top-1 peer-focus:text-sm peer-focus:text-gray-500"
+            >
               Password
             </label>
-            <input
-              id="password"
-              {...register('password', {
-                required: 'Password is required',
-                minLength: { value: 6, message: 'Password must be at least 6 characters' },
-              })}
-              type="password"
-              placeholder="••••••••"
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            />
-            {errors.password && (
-              <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
-            )}
           </div>
 
-          <div>
-            <label htmlFor="confirmPassword" className="block font-medium text-gray-700">
-              Confirm Password
+          {/* Role */}
+          <div className="relative">
+            <select
+              name="role"
+              id="role"
+              value={formData.role}
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-200 rounded-lg bg-transparent text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 appearance-none"
+            >
+              <option value="candidate">Candidate</option>
+              <option value="company">Company</option>
+            </select>
+            <label
+              htmlFor="role"
+              className="absolute left-3 top-1 text-sm text-gray-500 transition-all duration-200"
+            >
+              Role
             </label>
-            <input
-              id="confirmPassword"
-              {...register('confirmPassword', { required: 'Confirm password is required' })}
-              type="password"
-              placeholder="••••••••"
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            />
-            {errors.confirmPassword && (
-              <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>
-            )}
+            <svg
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
           </div>
 
+          {/* Company Name */}
+          {formData.role === 'company' && (
+            <div className="relative">
+              <input
+                type="text"
+                name="companyname"
+                id="companyname"
+                value={formData.companyname}
+                onChange={handleChange}
+                className="peer w-full p-3 pt-5 border border-gray-200 rounded-lg bg-transparent text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                placeholder="Company Name"
+                required
+              />
+              <label
+                htmlFor="companyname"
+                className="absolute left-3 top-1 text-sm text-gray-500 transition-all duration-200 peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-focus:top-1 peer-focus:text-sm peer-focus:text-gray-500"
+              >
+                Company Name
+              </label>
+            </div>
+          )}
+
+          {/* Register Button */}
           <button
-            type="submit"
-            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-2.5 rounded-full font-semibold hover:scale-105 transform transition-all duration-300"
+            type="button"
+            onClick={handleRegister}
+            disabled={loadingSignup}
+            className={`w-full px-4 py-3 rounded-lg text-white font-medium transition duration-300 transform hover:scale-105 ${
+              loadingSignup
+                ? 'bg-green-300 cursor-not-allowed'
+                : 'bg-green-600 hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2'
+            }`}
           >
-            Sign Up
+            {loadingSignup ? (
+              <span className="flex items-center justify-center">
+                <svg
+                  className="animate-spin h-5 w-5 mr-2 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z"
+                  ></path>
+                </svg>
+                Registering...
+              </span>
+            ) : (
+              'Register'
+            )}
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-600">
+        {/* Footer Link */}
+        <p className="mt-6 text-center text-sm text-gray-600">
           Already have an account?{' '}
-          <Link to="/login" className="text-blue-600 hover:underline">
-            Login
-          </Link>
+          <a href="/login" className="text-blue-600 hover:underline font-medium">
+            Log in
+          </a>
         </p>
       </div>
+
+      {/* Custom Animation for Fade-In */}
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 };

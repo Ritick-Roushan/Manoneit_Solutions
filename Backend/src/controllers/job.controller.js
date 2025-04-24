@@ -13,7 +13,7 @@ const createJob = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Job title, company, location, skills, description, and creator are required');
   }
 
-  if (!['client', 'admin'].includes(req.user?.role)) {
+  if (!['company', 'admin'].includes(req.user?.role)) {
     throw new ApiError(403, 'Only clients or admins can create jobs');
   }
 
@@ -48,6 +48,24 @@ const getAllJobs = asyncHandler(async (req, res) => {
   });
 });
 
+
+// @desc    Get pending (active only for admin)
+// @route   GET /api/v1/jobs/getAllJobs
+// @access  admin
+
+
+const getPendingJobs = asyncHandler(async (req, res) => {
+  if (req.user?.role !== 'admin') {
+    throw new ApiError(403, 'Only admins can access pending jobs');
+  }
+
+  // Fetch only pending jobs for admin
+  const jobs = await Job.find({ status: 'pending' }).populate('createdBy', 'name');
+  return res.status(200).json({
+    success: true,
+    data: jobs,
+  });
+});
 
 // @desc    Get single job by ID
 // @route   GET /api/v1/jobs/getJobById/:id
@@ -169,4 +187,4 @@ const approveJob = asyncHandler(async (req, res) => {
   });
 });
 
-export { createJob, getAllJobs, getJobById, getClosedJobs, deleteJob, getMyJobs, approveJob , closeJob};
+export { createJob, getAllJobs, getJobById, getClosedJobs, deleteJob, getMyJobs, approveJob , closeJob, getPendingJobs};

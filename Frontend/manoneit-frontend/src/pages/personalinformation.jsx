@@ -52,7 +52,7 @@ const Profile = () => {
           <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-3xl font-bold mb-4">
             {getInitials()}
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">{user.email}</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{user.fullname}</h2>
           <p className="text-gray-500 text-sm">{user.role.charAt(0).toUpperCase() + user.role.slice(1)}</p>
         </div>
 

@@ -82,23 +82,23 @@ const submitResume = asyncHandler(async (req, res) => {
   }
 
   // Save resume to public folder
-  const publicDir = path.join('public', 'resumes');
-  await fs.mkdir(publicDir, { recursive: true });
-  const resumeFilename = `${Date.now()}-${resume.originalname}`;
-  const newFilePath = path.join(publicDir, resumeFilename);
-  try {
-    await fs.copyFile(filePath, newFilePath);
-    console.log('Resume copied to:', newFilePath);
-  } catch (copyError) {
-    console.error('File copy error:', copyError.message);
-    throw new ApiError(500, 'Failed to save resume', [copyError.message]);
-  }
+  // const publicDir = path.join('public', 'resumes');
+  // await fs.mkdir(publicDir, { recursive: true });
+  // const resumeFilename = `${Date.now()}-${resume.originalname}`;
+  // const newFilePath = path.join(publicDir, resumeFilename);
+  // try {
+  //   await fs.copyFile(filePath, newFilePath);
+  //   console.log('Resume copied to:', newFilePath);
+  // } catch (copyError) {
+  //   console.error('File copy error:', copyError.message);
+  //   throw new ApiError(500, 'Failed to save resume', [copyError.message]);
+  // }
 
   // Create application
   const application = await Application.create({
     userId,
     jobId,
-    resume: `/resumes/${resumeFilename}`,
+    resume: `/uploads/${path.basename(resume.path)}`,
     name,
     email,
     phone,
@@ -231,14 +231,18 @@ Manoneit Solutions Team
   }
 
   // Delete the uploaded file
-  console.log('Deleting file:', filePath);
+  console.log('Checking file exists before deleting:', filePath);
   try {
+    await fs.access(filePath, fs.constants.F_OK);
+    console.log('File exists before deletion');
+  
     await fs.unlink(filePath);
     console.log('File deleted successfully');
-  } catch (deleteError) {
-    console.error('Error deleting file:', deleteError.message);
-    // Log but don't fail
+  } catch (error) {
+    console.error('File check/delete error:', error.message);
   }
+  
+  
 
   console.log('Submission complete.');
   return res.status(200).json({
@@ -294,4 +298,39 @@ const getAllApplications = asyncHandler(async (req, res) => {
 });
 
 
-export { submitResume, getMyApplications, getAllApplications };
+const deleteAllApplicationsForJob = asyncHandler(async (req, res) => {
+  if (req.user?.role !== 'admin') {
+    throw new ApiError(403, 'Only admins can close all applications');
+  }
+
+  const { jobId } = req.params;
+  await Application.deleteMany({ jobId });
+
+  res.status(200).json({
+    success: true,
+    message: 'All applications for this job have been deleted',
+  });
+});
+
+// Delete a specific user's application for a job - Admin Only
+const deleteSingleApplication = asyncHandler(async (req, res) => {
+  if (req.user?.role !== 'admin') {
+    throw new ApiError(403, 'Only admins can delete applications');
+  }
+
+  const { jobId, userId } = req.params;
+
+  const deleted = await Application.findOneAndDelete({ jobId, userId });
+
+  if (!deleted) {
+    throw new ApiError(404, 'Application not found');
+  }
+
+  res.status(200).json({
+    success: true,
+    message: 'Application deleted successfully',
+  });
+});
+
+
+export { submitResume, getMyApplications, getAllApplications, deleteAllApplicationsForJob, deleteSingleApplication };

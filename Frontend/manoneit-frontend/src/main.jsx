@@ -20,6 +20,7 @@ import UserDashboard from './pages/candidate.dashboard.jsx';
 import CompanyDashboard from './pages/company.dashboard.jsx';
 import AdminDashboard from './pages/admin.dashboard.jsx';
 import JobApplicants from './pages/jobapplicant.jsx';
+import AdminReview from './pages/approve.job.jsx';
 
 // Placeholder Page
 const Page = ({ title }) => (
@@ -73,7 +74,7 @@ const router = createBrowserRouter([
 
       { path: '/clients', element: <Page title="Clients Page" /> },
       { path: '/contact', element: <Page title="Contact Page" /> },
-      {path:"/jobs/:jobId/applicants", element: <JobApplicants /> },
+     // {path:"/jobs/:jobId/applicants", element: <JobApplicants /> },
 
       {
         path: '/profile',
@@ -94,7 +95,7 @@ const router = createBrowserRouter([
       {
         path: '/post-job',
         element: (
-          <ProtectedRoute allowedRoles={['client', 'admin']}>
+          <ProtectedRoute allowedRoles={['company', 'admin']}>
             <PostJob />
           </ProtectedRoute>
         ),
@@ -112,6 +113,22 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute allowedRoles={['client']}>
             <CompanyDashboard />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: '/jobs/:jobId/applicants',
+        element: (
+          <ProtectedRoute allowedRoles={['admin']}>
+            <JobApplicants />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: '/admin-review',
+        element: (
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminReview />
           </ProtectedRoute>
         ),
       },
