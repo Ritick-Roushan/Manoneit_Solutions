@@ -313,17 +313,14 @@ const deleteAllApplicationsForJob = asyncHandler(async (req, res) => {
 });
 
 // Delete a specific user's application for a job - Admin Only
+// DELETE application by jobId and userId
 const deleteSingleApplication = asyncHandler(async (req, res) => {
-  if (req.user?.role !== 'admin') {
-    throw new ApiError(403, 'Only admins can delete applications');
-  }
-
   const { jobId, userId } = req.params;
 
   const deleted = await Application.findOneAndDelete({ jobId, userId });
 
   if (!deleted) {
-    throw new ApiError(404, 'Application not found');
+    throw new ApiError(404, 'Application not found for this user and job');
   }
 
   res.status(200).json({
@@ -331,6 +328,7 @@ const deleteSingleApplication = asyncHandler(async (req, res) => {
     message: 'Application deleted successfully',
   });
 });
+
 
 
 export { submitResume, getMyApplications, getAllApplications, deleteAllApplicationsForJob, deleteSingleApplication };

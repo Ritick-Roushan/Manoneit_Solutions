@@ -7,7 +7,7 @@ const Signup = () => {
     email: '',
     contactnumber: '',
     password: '',
-    role: 'candidate',
+    role: '', // Default role
     companyname: '',
     otp: '',
   });
@@ -55,7 +55,7 @@ const Signup = () => {
         email: '',
         contactnumber: '',
         password: '',
-        role: 'candidate',
+        role: '',
         companyname: '',
         otp: '',
       }); // Reset form
@@ -204,11 +204,10 @@ const Signup = () => {
               type="button"
               onClick={handleSendOtp}
               disabled={loadingOtp || !formData.email}
-              className={`flex-1 px-4 py-3 rounded-lg text-white font-medium transition duration-300 transform hover:scale-105 ${
-                loadingOtp || !formData.email
+              className={`flex-1 px-4 py-3 rounded-lg text-white font-medium transition duration-300 transform hover:scale-105 ${loadingOtp || !formData.email
                   ? 'bg-blue-300 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
-              }`}
+                }`}
             >
               {loadingOtp ? (
                 <span className="flex items-center justify-center">
@@ -306,6 +305,7 @@ const Signup = () => {
           </div>
 
           {/* Role */}
+          {/* Role */}
           <div className="relative">
             <select
               name="role"
@@ -314,6 +314,9 @@ const Signup = () => {
               onChange={handleChange}
               className="w-full p-3 border border-gray-200 rounded-lg bg-transparent text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 appearance-none"
             >
+              <option value="" disabled>
+                Select role
+              </option>
               <option value="candidate">Candidate</option>
               <option value="company">Company</option>
             </select>
@@ -338,6 +341,7 @@ const Signup = () => {
               />
             </svg>
           </div>
+
 
           {/* Company Name */}
           {formData.role === 'company' && (
@@ -366,11 +370,10 @@ const Signup = () => {
             type="button"
             onClick={handleRegister}
             disabled={loadingSignup}
-            className={`w-full px-4 py-3 rounded-lg text-white font-medium transition duration-300 transform hover:scale-105 ${
-              loadingSignup
+            className={`w-full px-4 py-3 rounded-lg text-white font-medium transition duration-300 transform hover:scale-105 ${loadingSignup
                 ? 'bg-green-300 cursor-not-allowed'
                 : 'bg-green-600 hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2'
-            }`}
+              }`}
           >
             {loadingSignup ? (
               <span className="flex items-center justify-center">

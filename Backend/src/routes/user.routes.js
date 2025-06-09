@@ -19,7 +19,7 @@ router.route('/submit-resume').post(multerMiddleware, verifyJWT, submitResume);
 router.route('/my-applications').get(verifyJWT, getMyApplications);
 router.route('/applications/all').get(verifyJWT, getAllApplications);
 router.route('/approve/:jobId').patch(verifyJWT, approveJob);
-router.route('/delete-application/:jobId').delete(verifyJWT, deleteSingleApplication);
+router.route('/delete-application/:jobId/:userId').delete(verifyJWT, deleteSingleApplication);
 router.route('/delete-all-applications/:jobId').delete(verifyJWT, deleteAllApplicationsForJob);
 router.route('/send-otp').post(generateOtp);
 

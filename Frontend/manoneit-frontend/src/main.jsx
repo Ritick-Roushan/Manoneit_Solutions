@@ -21,6 +21,7 @@ import CompanyDashboard from './pages/company.dashboard.jsx';
 import AdminDashboard from './pages/admin.dashboard.jsx';
 import JobApplicants from './pages/jobapplicant.jsx';
 import AdminReview from './pages/approve.job.jsx';
+import JobDetailPage from './pages/jobdetailpage.jsx';
 
 // Placeholder Page
 const Page = ({ title }) => (
@@ -33,7 +34,13 @@ const Page = ({ title }) => (
 const ProtectedRoute = ({ allowedRoles, redirectPath = '/jobs', children }) => {
   const { user, loading } = React.useContext(AuthContext);
 
-  if (loading) return null; // Show nothing or a loader while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    ); // Added loading spinner
+  }
 
   if (!user) {
     return <Navigate to="/login" replace />;
@@ -70,12 +77,10 @@ const router = createBrowserRouter([
       { path: '/signup', element: <Signup /> },
       { path: '/jobs', element: <Jobs /> },
       { path: '/jobs/:id', element: <JobDetail /> },
+      { path: '/job-detail/:jobId', element: <JobDetailPage /> }, // Public route
       { path: '/apply/:jobId', element: <ApplyJob /> },
-
       { path: '/clients', element: <Page title="Clients Page" /> },
       { path: '/contact', element: <Page title="Contact Page" /> },
-     // {path:"/jobs/:jobId/applicants", element: <JobApplicants /> },
-
       {
         path: '/profile',
         element: (
@@ -140,7 +145,6 @@ const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
-
       { path: '*', element: <NotFound /> },
     ],
   },

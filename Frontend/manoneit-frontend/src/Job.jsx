@@ -18,22 +18,32 @@ const Jobs = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
+    if (!jobs || jobs.length === 0) {
+      console.warn('No jobs found in JobContext');
+    }
     const handleScroll = () => setShowScrollTop(window.scrollY > 300);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [jobs]); // Removed closedJobs from dependency array as it's not directly used for this effect
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
   const handleQuickApply = (id) => {
-    if (!user) {
-      navigate('/login');
+    if (!id) {
+      console.error('Invalid jobId:', id);
+      alert('Invalid job ID. Please try again.');
+      return;
+    }
+    const jobExists = jobs.find((job) => job._id === id);
+    if (!jobExists) {
+      console.warn('Job not found in jobs array for id:', id);
+      alert('Job not found. It may have been removed.');
       return;
     }
     setApplyLoading((prev) => ({ ...prev, [id]: true }));
     setTimeout(() => {
       setApplyLoading((prev) => ({ ...prev, [id]: false }));
-      navigate(`/apply/${id}`);
+      navigate(`/job-detail/${id}`);
     }, 1000);
   };
 
@@ -124,14 +134,14 @@ const Jobs = () => {
             value={searchQuery}
             onChange={handleSearch}
             placeholder="Search jobs by title, company, location, or description..."
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700 placeholder-gray-400 shadow-sm"
+            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700 placeholder-gray-400 shadow-sm"
             aria-label="Search jobs"
           />
         </div>
 
         <motion.div
           initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.8 }}
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
         >
@@ -193,10 +203,10 @@ const Jobs = () => {
                           }}
                           className="flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-300"
                           disabled={applyLoading[job._id]}
-                          aria-label="Quick apply for job"
+                          aria-label="View job details"
                         >
                           <FaSearch className="mr-2" />
-                          {applyLoading[job._id] ? 'Applying...' : 'Quick Apply'}
+                          {applyLoading[job._id] ? 'Loading...' : 'View Details'}
                         </button>
                         {user && user.role === 'admin' && (
                           <>
@@ -266,10 +276,10 @@ const Jobs = () => {
                           }}
                           className="flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-300"
                           disabled={applyLoading[job._id]}
-                          aria-label="Quick apply for job"
+                          aria-label="View job details"
                         >
                           <FaSearch className="mr-2" />
-                          {applyLoading[job._id] ? 'Applying...' : 'Quick Apply'}
+                          {applyLoading[job._id] ? 'Loading...' : 'View Details'}
                         </button>
                         {user && user.role === 'admin' && (
                           <>
@@ -326,7 +336,7 @@ const Jobs = () => {
           </motion.h2>
           <motion.div
             initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
             transition={{ duration: 0.8 }}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
           >

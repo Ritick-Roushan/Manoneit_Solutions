@@ -61,7 +61,7 @@ const AdminDashboard = () => {
   const recentJobs = jobs
     .filter((job) => job.status === 'active')
     .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
-    .slice(0, 5);
+    //.slice(0, 5);
 
   if (!user || user.role !== 'admin') {
     return null; // Redirect handled by useEffect

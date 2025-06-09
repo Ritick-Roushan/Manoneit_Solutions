@@ -16,10 +16,10 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-semibold mb-4 text-white">Quick Links</h3>
             <ul className="space-y-2">
-              {['Home', 'Jobs', 'Clients', 'Contact'].map((item) => (
+              {['Home', 'Jobs'].map((item) => (
                 <li key={item}>
                   <Link
-                    to={`/${item.toLowerCase()}`}
+                    to={item === 'Home' ? '/' : `/${item.toLowerCase()}`}
                     className="text-gray-300 hover:text-blue-400 transition-colors duration-300"
                   >
                     {item}
@@ -30,18 +30,21 @@ const Footer = () => {
           </div>
           <div>
             <h3 className="text-lg font-semibold mb-4 text-white">Contact Us</h3>
-            <p className="text-gray-300 text-sm">Email: info@manoneit.com</p>
-            <p className="text-gray-300 text-sm">Phone: (123) 456-7890</p>
+            <p className="text-gray-300 text-sm">
+              Regd. Office: H/N-A/35, Rajeev Nagar Gali, Kanti Factory Road, Gandhi Nagar, Kankarbagh, Patna-800020
+            </p>
+            <p className="text-gray-300 text-sm mt-2">Email: manoneitindia@gmail.com</p>
+            <p className="text-gray-300 text-sm">Phone: 9973752777</p>
             <div className="flex space-x-4 mt-4">
-              {['linkedin', 'twitter'].map((social) => (
-                <a
-                  key={social}
-                  href="#"
-                  className="text-gray-300 hover:text-blue-400 hover:scale-110 transform transition-all duration-300"
-                >
-                  <i className={`fab fa-${social} text-xl`}></i>
-                </a>
-              ))}
+              <a
+                href="https://www.linkedin.com/company/manoneit-solutions" // Replace with your LinkedIn URL
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-300 hover:text-blue-400 hover:underline transition-colors duration-300"
+                aria-label="Visit our LinkedIn page"
+              >
+                LinkedIn
+              </a>
             </div>
           </div>
         </div>

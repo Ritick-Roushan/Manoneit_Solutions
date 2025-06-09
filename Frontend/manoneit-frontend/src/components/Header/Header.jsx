@@ -70,7 +70,6 @@ const Header = () => {
     { label: 'Home', path: '/' },
     { label: 'Jobs', path: '/jobs' },
     ...(user?.role === 'admin' ? [{ label: 'Clients', path: '/clients' }] : []),
-    { label: 'Contact', path: '/contact' },
   ];
 
   return (

@@ -27,16 +27,16 @@ const generateAccessAndRefreshTokens = async (userId) => {
 
 
 const registerUser = asyncHandler(async (req, res) => {
-  const { fullname, email, contactnumber, companyname, role, password, otp } = req.body;
+  const { fullname, email, contactnumber, companyname, role, password, otp} = req.body;
 
   // Validation: all required fields
   if ([fullname, email, contactnumber, role, password, otp].some(field => field?.trim() === "")) {
     throw new ApiError(400, "All fields are required");
   }
 
-  if (role === "admin") {
-    throw new ApiError(403, "Admin registration is not allowed");
-  }
+  // if (role === "admin") {
+  //   throw new ApiError(403, "Admin registration is not allowed");
+  // }
 
   // Check if user already exists
   const existedUser = await User.findOne({ email });
