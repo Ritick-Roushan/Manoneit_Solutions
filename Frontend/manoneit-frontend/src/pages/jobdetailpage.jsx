@@ -54,9 +54,9 @@ const JobDetailPage = () => {
         let errorMessage = 'Failed to load job details.';
 
         if (err.message.includes('Network Error')) {
-            errorMessage = 'Network error. Please check your internet connection or server availability.';
+          errorMessage = 'Network error. Please check your internet connection or server availability.';
         } else if (err.message.includes('HTML page')) {
-            errorMessage = err.message; // Use the specific message for HTML response
+          errorMessage = err.message; // Use the specific message for HTML response
         } else if (axios.isAxiosError(err)) {
           if (err.response) {
             // The request was made and the server responded with a status code
@@ -108,49 +108,49 @@ const JobDetailPage = () => {
     setLoading(true); // Show loading spinner again
     // Re-call fetchJobDetail
     const fetchJobDetail = async () => {
-        try {
-            const res = await axios.get(`/api/v1/users/jobs/getJobById/${jobId}`, {
-                headers: token ? { Authorization: `Bearer ${token}` } : {},
-                withCredentials: true,
-            });
+      try {
+        const res = await axios.get(`/api/v1/users/jobs/getJobById/${jobId}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          withCredentials: true,
+        });
 
-            if (typeof res.data === 'string' && res.data.startsWith('<!doctype html>')) {
-                console.error('API returned HTML instead of JSON on retry.');
-                throw new Error('Server returned an HTML page. Expected job data.');
-            }
-
-            let jobData = res.data;
-            if (res.data.data) {
-                jobData = res.data.data;
-            } else if (res.data.job) {
-                jobData = res.data.job;
-            } else if (!res.data._id) {
-                throw new Error('Job data is in an unexpected format on retry.');
-            }
-            setJob(jobData);
-            setError(null);
-        } catch (err) {
-            console.error('Error retrying fetch:', err);
-            let errorMessage = 'Failed to load job details on retry.';
-            if (err.message.includes('HTML page')) {
-                errorMessage = err.message;
-            } else if (axios.isAxiosError(err)) {
-                if (err.response) {
-                    if (err.response.status === 404) {
-                        errorMessage = `Job not found for ID: ${jobId}.`;
-                    } else if (err.response.status === 401) {
-                        errorMessage = 'Unauthorized access on retry.';
-                    } else {
-                        errorMessage = err.response.data?.message || `Server error: ${err.response.status} on retry`;
-                    }
-                } else if (err.request) {
-                    errorMessage = 'No response from server on retry. Server might be down.';
-                }
-            }
-            setError(errorMessage);
-        } finally {
-            setLoading(false);
+        if (typeof res.data === 'string' && res.data.startsWith('<!doctype html>')) {
+          console.error('API returned HTML instead of JSON on retry.');
+          throw new Error('Server returned an HTML page. Expected job data.');
         }
+
+        let jobData = res.data;
+        if (res.data.data) {
+          jobData = res.data.data;
+        } else if (res.data.job) {
+          jobData = res.data.job;
+        } else if (!res.data._id) {
+          throw new Error('Job data is in an unexpected format on retry.');
+        }
+        setJob(jobData);
+        setError(null);
+      } catch (err) {
+        console.error('Error retrying fetch:', err);
+        let errorMessage = 'Failed to load job details on retry.';
+        if (err.message.includes('HTML page')) {
+          errorMessage = err.message;
+        } else if (axios.isAxiosError(err)) {
+          if (err.response) {
+            if (err.response.status === 404) {
+              errorMessage = `Job not found for ID: ${jobId}.`;
+            } else if (err.response.status === 401) {
+              errorMessage = 'Unauthorized access on retry.';
+            } else {
+              errorMessage = err.response.data?.message || `Server error: ${err.response.status} on retry`;
+            }
+          } else if (err.request) {
+            errorMessage = 'No response from server on retry. Server might be down.';
+          }
+        }
+        setError(errorMessage);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchJobDetail();
   };
@@ -222,24 +222,33 @@ const JobDetailPage = () => {
               <span className="font-medium">Salary:</span>{' '}
               {job.salary ? `₹${job.salary.toLocaleString('en-IN')}` : 'Not specified'}
             </p>
+            {job.skillsRequired && job.skillsRequired.length > 0 && (
+              <div>
+                <p className="font-medium text-gray-700">Skills Required:</p>
+                <ul className="list-disc list-inside text-gray-600 mt-1">
+                  {job.skillsRequired.map((skill, index) => (
+                    <li key={index}>{skill}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <p><span className="font-medium">Description:</span></p>
             <p className="text-gray-500 whitespace-pre-line">{job.description}</p>
             <p>
               <span className="font-medium">Posted on:</span>{' '}
               {job.createdAt
                 ? new Date(job.createdAt).toLocaleDateString('en-IN', {
-                    month: 'long',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric',
+                })
                 : 'Not available'}
             </p>
             <p>
               <span className="font-medium">Status:</span>{' '}
               <span
-                className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                  job.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                }`}
+                className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${job.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}
               >
                 {job.status}
               </span>
