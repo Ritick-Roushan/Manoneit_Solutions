@@ -346,7 +346,7 @@ const Home = () => {
                       >
                         <div className="flex items-center mb-4">
                           <img
-                            src={job.image || 'https://via.placeholder.com/48'}
+                            src={job.image || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSXoHHxo7rwXNehFmlUwFBaDRJrg1rSqEQyEQ&s'}
                             alt={job.jobTitle}
                             className="w-12 h-12 rounded-full object-cover mr-4"
                           />
@@ -357,8 +357,19 @@ const Home = () => {
                             <p className="text-gray-600">{job.company}</p>
                           </div>
                         </div>
-                        <p className="text-gray-500 text-sm mb-2">{job.location}</p>
-                        <p className="text-gray-500 text-sm mb-4">{job.jobType}</p>
+                        <div className="space-y-2 text-gray-600 text-sm">
+                          <p>
+                            <span className="font-medium">Location:</span> {job.location}
+                          </p>
+                          <p>
+                            <span className="font-medium">Job Type:</span> {job.jobType}
+                          </p>
+                          <p>
+                            <span className="font-medium">Salary:</span>{' '}
+                            {job.salary ? `₹${job.salary.toLocaleString()}` : 'Not specified'}
+                          </p>
+                        </div>
+
                         <button
                           onClick={(e) => {
                             e.stopPropagation();

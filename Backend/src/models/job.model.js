@@ -27,10 +27,11 @@ const jobSchema = new mongoose.Schema(
       trim: true,
     },
     salary: {
-      type: Number,
-      min: [0, 'Salary cannot be negative'],
+      type: String,
+      trim: true,
       default: null, // Optional field
     },
+
     skillsRequired: {
       type: [String],
       required: [true, 'Skills required are mandatory'],

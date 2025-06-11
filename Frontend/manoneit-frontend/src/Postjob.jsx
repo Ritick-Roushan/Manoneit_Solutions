@@ -38,7 +38,7 @@ const PostJob = () => {
         .split(',')
         .map((skill) => skill.trim())
         .filter((skill) => skill),
-      salary: data.salary ? Number(data.salary) : undefined,
+      salary: data.salary?.trim() || undefined,
       status: user.role === 'admin' ? 'active' : 'pending',
     };
 
@@ -201,14 +201,12 @@ const PostJob = () => {
             </label>
             <input
               id="salary"
-              {...register('salary', {
-                min: { value: 0, message: 'Salary cannot be negative' },
-              })}
-              type="number"
-              placeholder="e.g., 80000"
+              {...register('salary')}
+              type="text"
+              placeholder="e.g., 20 LPA"
               className="mt-1 w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              aria-label="Annual salary"
             />
+
             <p className="text-sm text-gray-500 mt-1">Optional: Enter annual salary amount</p>
             {errors.salary && (
               <p className="text-red-500 text-sm mt-1">{errors.salary.message}</p>
@@ -217,9 +215,8 @@ const PostJob = () => {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full py-3 rounded-lg text-white font-semibold transition-colors ${
-              loading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
-            }`}
+            className={`w-full py-3 rounded-lg text-white font-semibold transition-colors ${loading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+              }`}
             aria-label="Post job"
           >
             {loading ? 'Submitting...' : 'Post Job'}

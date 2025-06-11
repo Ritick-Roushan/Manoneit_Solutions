@@ -22,7 +22,7 @@ const createJob = asyncHandler(async (req, res) => {
     jobType: jobType || 'full-time',
     company,
     location,
-    salary,
+    salary: salary?.trim() || null,
     skillsRequired: Array.isArray(skillsRequired) ? skillsRequired : skillsRequired.split(',').map((s) => s.trim()),
     description,
     status: req.user.role === 'admin' ? 'active' : 'pending', // Admins create active jobs, clients create pending
@@ -36,9 +36,6 @@ const createJob = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Get all jobs (active only for public)
-// @route   GET /api/v1/jobs/getAllJobs
-// @access  Public
 const getAllJobs = asyncHandler(async (req, res) => {
   const query = req.user?.role === 'admin' ? {} : { status: 'active' };
   const jobs = await Job.find(query).populate('createdBy', 'name');

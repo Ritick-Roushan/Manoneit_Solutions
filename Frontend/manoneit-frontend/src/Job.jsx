@@ -188,7 +188,7 @@ const Jobs = () => {
                         </p>
                         <p>
                           <span className="font-medium">Salary:</span>{' '}
-                          {job.salary ? `$${job.salary.toLocaleString()}` : 'Not specified'}
+                          {job.salary ? `₹${job.salary.toLocaleString()}` : 'Not specified'}
                         </p>
                         <p>
                           <span className="font-medium">Description:</span>
@@ -247,7 +247,7 @@ const Jobs = () => {
                     >
                       <div className="flex items-start mb-4">
                         <img
-                          src={job.image || 'https://via.placeholder.com/48'}
+                          src={job.image || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSXoHHxo7rwXNehFmlUwFBaDRJrg1rSqEQyEQ&s'}
                           alt={job.jobTitle}
                           className="w-12 h-12 rounded-full object-cover mr-4"
                         />
@@ -265,7 +265,7 @@ const Jobs = () => {
                         </p>
                         <p>
                           <span className="font-medium">Salary:</span>{' '}
-                          {job.salary ? `$${job.salary.toLocaleString()}` : 'Not specified'}
+                          {job.salary ? `₹${job.salary.toLocaleString()}` : 'Not specified'}
                         </p>
                       </div>
                       <div className="mt-4 flex gap-2 flex-wrap">
@@ -350,7 +350,7 @@ const Jobs = () => {
                 >
                   <div className="flex items-start mb-4">
                     <img
-                      src={job.image || 'https://via.placeholder.com/48'}
+                      src={job.image || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSXoHHxo7rwXNehFmlUwFBaDRJrg1rSqEQyEQ&s'}
                       alt={job.jobTitle}
                       className="w-12 h-12 rounded-full object-cover mr-4"
                     />
@@ -368,7 +368,7 @@ const Jobs = () => {
                     </p>
                     <p>
                       <span className="font-medium">Salary:</span>{' '}
-                      {job.salary ? `$${job.salary.toLocaleString()}` : 'Not specified'}
+                      {job.salary ? `₹${job.salary.toLocaleString()}` : 'Not specified'}
                     </p>
                   </div>
                   <p className="text-red-500 text-sm font-medium mt-4 bg-red-50 px-2 py-1 rounded inline-block">
