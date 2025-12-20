@@ -33,7 +33,7 @@ const AdminDashboard = () => {
       try {
         setUserStatsLoading(true);
         setUserStatsError(null);
-        const response = await axios.get('http://localhost:8000/api/v1/users/get-user-stats', {
+        const response = await axios.get('/api/v1/users/get-user-stats', {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUserStats({

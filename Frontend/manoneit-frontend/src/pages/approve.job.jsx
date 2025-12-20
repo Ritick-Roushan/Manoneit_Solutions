@@ -25,7 +25,7 @@ const AdminReview = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch('http://localhost:8000/api/v1/users/jobs/pending-jobs', {
+        const response = await fetch('/api/v1/users/jobs/pending-jobs', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -61,7 +61,7 @@ const AdminReview = () => {
   const handleApprove = async (jobId) => {
     try {
       setApproving((prev) => ({ ...prev, [jobId]: true }));
-      const response = await fetch(`http://localhost:8000/api/v1/users/approve/${jobId}`, {
+      const response = await fetch(`/api/v1/users/approve/${jobId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

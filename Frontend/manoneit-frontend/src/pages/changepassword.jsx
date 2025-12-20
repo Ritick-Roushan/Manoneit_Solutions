@@ -30,7 +30,7 @@ const ChangePassword = () => {
 
     try {
       const response = await axios.post(
-        'http://localhost:8000/api/v1/users/change-password',
+        '/api/v1/users/change-password',
         {
           oldPassword: formData.oldPassword,
           newPassword: formData.newPassword,

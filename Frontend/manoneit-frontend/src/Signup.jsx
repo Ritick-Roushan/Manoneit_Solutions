@@ -30,7 +30,7 @@ const Signup = () => {
     try {
       setLoadingOtp(true);
       setError('');
-      const res = await axios.post('http://localhost:8000/api/v1/users/send-otp', { email: formData.email });
+      const res = await axios.post('/api/v1/users/send-otp', { email: formData.email });
       console.log('🟢 OTP API full response:', res.data);
       setOtpSent(true);
     } catch (err) {
@@ -46,7 +46,7 @@ const Signup = () => {
       setLoadingSignup(true);
       setError('');
 
-      const res = await axios.post('http://localhost:8000/api/v1/users/register', formData);
+      const res = await axios.post('/api/v1/users/register', formData);
 
       console.log('✅ Registration success:', res.data);
       setSuccess(true); // Show success state

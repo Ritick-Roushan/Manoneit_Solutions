@@ -27,7 +27,7 @@ const CompanyDashboard = () => {
       try {
         setJobsLoading(true);
         setJobsError(null);
-        const response = await axios.get('http://localhost:8000/api/v1/jobs/my-jobs', {
+        const response = await axios.get('/api/v1/jobs/my-jobs', {
           headers: { Authorization: `Bearer ${token}` },
         });
         setCompanyJobs(response.data.data);

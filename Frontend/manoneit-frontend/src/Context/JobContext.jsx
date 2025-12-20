@@ -16,7 +16,7 @@ export const JobProvider = ({ children }) => {
   const fetchJobs = async () => {
     setJobsLoading(true);
     try {
-      const response = await axios.get('http://localhost:8000/api/v1/users/jobs/getAllJobs', {
+      const response = await axios.get('/api/v1/users/jobs/getAllJobs', {
         withCredentials: true,
       });
       setJobs(response.data.data || []);
@@ -40,7 +40,7 @@ export const JobProvider = ({ children }) => {
   const fetchClosedJobs = async () => {
     setClosedJobsLoading(true);
     try {
-      const response = await axios.get('http://localhost:8000/api/v1/users/jobs/getClosedJobs', {
+      const response = await axios.get('/api/v1/users/jobs/getClosedJobs', {
         withCredentials: true,
       });
       setClosedJobs(response.data.data || []);
@@ -64,7 +64,7 @@ export const JobProvider = ({ children }) => {
   const moveToClosed = async (id) => {
     try {
       const response = await axios.patch(
-        `http://localhost:8000/api/v1/users/jobs/closeJob/${id}`,
+        `/api/v1/users/jobs/closeJob/${id}`,
         {},
         {
           headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
@@ -92,7 +92,7 @@ export const JobProvider = ({ children }) => {
 
   const deleteJob = async (id) => {
     try {
-      await axios.delete(`http://localhost:8000/api/v1/users/jobs/deleteJob/${id}`, {
+      await axios.delete(`/api/v1/users/jobs/deleteJob/${id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
         withCredentials: true,
       });

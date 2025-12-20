@@ -51,7 +51,7 @@ const ApplyJob = () => {
       setError(null);
       setLoading(true); // Start loading
       await axios.post(
-        'http://localhost:8000/api/v1/users/submit-resume',
+        '/api/v1/users/submit-resume',
         formDataToSend,
         {
           headers: {

@@ -92,7 +92,7 @@ const JobApplicants = () => {
 
     try {
       console.log(`Deleting all applications for jobId: ${jobId}`);
-      await axios.delete(`http://localhost:8000/api/v1/users/delete-all-applications/${jobId}`, {
+      await axios.delete(`/api/v1/users/delete-all-applications/${jobId}`, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       });
@@ -111,7 +111,7 @@ const JobApplicants = () => {
 
     try {
       console.log(`Deleting application for jobId: ${jobId}, userId: ${userId}`);
-      await axios.delete(`http://localhost:8000/api/v1/users/delete-application/${jobId}/${userId}`, {
+      await axios.delete(`/api/v1/users/delete-application/${jobId}/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       });

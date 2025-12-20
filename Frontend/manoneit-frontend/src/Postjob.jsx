@@ -44,7 +44,7 @@ const PostJob = () => {
 
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8000/api/v1/users/jobs/createJob', {
+      const response = await fetch('/api/v1/users/jobs/createJob', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -19,7 +19,7 @@ const Header = () => {
       setLogoutLoading(true);
       setLogoutError(null);
       await axios.post(
-        'http://localhost:8000/api/v1/users/logout',
+        '/api/v1/users/logout',
         {},
         {
           withCredentials: true,

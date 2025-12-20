@@ -16,7 +16,7 @@ const UserDashboard = () => {
     try {
       // Fetch applications
       console.log('Fetching user applications');
-      const applicationsResponse = await axios.get('http://localhost:8000/api/v1/users/my-applications', {
+      const applicationsResponse = await axios.get('/api/v1/users/my-applications', {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       });
@@ -29,7 +29,7 @@ const UserDashboard = () => {
 
       // Fetch available jobs
       console.log('Fetching available jobs');
-      const jobsResponse = await axios.get('http://localhost:8000/api/v1/users/jobs/getAllJobs', {
+      const jobsResponse = await axios.get('/api/v1/users/jobs/getAllJobs', {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true,
       });
@@ -67,7 +67,7 @@ const withdrawApplication = async (applicationId, jobId) => {
     console.log(`Withdrawing application with applicationId: ${applicationId}, jobId: ${jobId}, userId: ${user._id}`);
     
     // Call the correct API route with both jobId and userId
-    await axios.delete(`http://localhost:8000/api/v1/users/delete-application/${jobId}/${user._id}`, {
+    await axios.delete(`/api/v1/users/delete-application/${jobId}/${user._id}`, {
       headers: { Authorization: `Bearer ${token}` },
       withCredentials: true,
     });
