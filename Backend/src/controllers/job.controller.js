@@ -1,6 +1,6 @@
 import Job from '../models/job.model.js';
 import { ApiError } from '../utils/apiError.js';
-import { asyncHandler } from '../utils/asyncHandler.js';
+import { asyncHandler } from '../utils/asynchandler.js';
 
 // @desc    Create a new job
 // @route   POST /api/v1/jobs/createJob
