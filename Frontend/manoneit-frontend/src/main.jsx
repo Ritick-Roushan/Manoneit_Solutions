@@ -22,6 +22,7 @@ import AdminDashboard from './pages/admin.dashboard.jsx';
 import JobApplicants from './pages/jobapplicant.jsx';
 import AdminReview from './pages/approve.job.jsx';
 import JobDetailPage from './pages/jobdetailpage.jsx';
+import GenerateInvoice from './pages/generateinvoice.jsx';
 
 // Placeholder Page
 const Page = ({ title }) => (
@@ -134,6 +135,14 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute allowedRoles={['admin']}>
             <AdminReview />
+          </ProtectedRoute>
+        ),
+      },
+        {
+        path: '/invoicegenerator',
+        element: (
+          <ProtectedRoute allowedRoles={['admin']}>
+            <GenerateInvoice />
           </ProtectedRoute>
         ),
       },

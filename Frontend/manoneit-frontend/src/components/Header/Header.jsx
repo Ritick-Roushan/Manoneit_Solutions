@@ -55,6 +55,7 @@ const Header = () => {
       { path: '/post-job', label: 'Post Job', aria: 'Navigate to post job page' },
       { path: '/admin-review', label: 'Review Jobs', aria: 'Navigate to admin review page' },
       { path: '/admin-dashboard', label: 'Dashboard', aria: 'Navigate to admin dashboard' },
+      { path: '/invoicegenerator', label: 'Generate Invoice', aria: 'Navigate to generate dashboard' },
     ],
     company: [
       { path: '/post-job', label: 'Post Job', aria: 'Navigate to post job page' },
