@@ -2,7 +2,7 @@ import nodemailer from 'nodemailer';
 import fs from 'fs/promises';
 import path from 'path';
 import { ApiError } from '../utils/apiError.js';
-import { asyncHandler } from '../utils/asyncHandler.js';
+import { asyncHandler } from '../utils/asynchandler.js';
 import { Application } from '../models/application.model.js';
 import Job  from '../models/job.model.js';
 
