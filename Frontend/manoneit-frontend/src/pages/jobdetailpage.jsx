@@ -207,7 +207,7 @@ const JobDetailPage = () => {
           <h1 className="text-3xl font-bold text-gray-800 mb-4">{job.jobTitle}</h1>
           <div className="flex items-center mb-4">
             <img
-              src={job.image || 'https://via.placeholder.com/48'}
+              src={job.image || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSXoHHxo7rwXNehFmlUwFBaDRJrg1rSqEQyEQ&s'}
               alt={job.jobTitle}
               className="w-16 h-16 rounded-full object-cover"
             />
