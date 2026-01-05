@@ -33,7 +33,7 @@ const JobApplicants = () => {
       // Fetch applicants
       console.log(`Fetching applicants for jobId: ${jobId}`);
       const applicantsResponse = await axios.get(
-        `http://localhost:8000/api/v1/users/applications/all?jobId=${jobId}`,
+        `/api/v1/users/applications/all?jobId=${jobId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
           withCredentials: true,
@@ -46,7 +46,7 @@ const JobApplicants = () => {
       // Fetch job details (optional, continue even if this fails)
       try {
         console.log(`Fetching job details for jobId: ${jobId}`);
-        const jobResponse = await axios.get(`http://localhost:8000/api/v1/jobs/${jobId}`, {
+        const jobResponse = await axios.get(`/api/v1/jobs/${jobId}`, {
           headers: { Authorization: `Bearer ${token}` },
           withCredentials: true,
         });

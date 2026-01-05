@@ -28,7 +28,6 @@ const userSchema = new Schema({
     contactnumber: {
         type: String,
         required: true,
-        unique: true,
         trim: true,
         lowercase: true,
     },
