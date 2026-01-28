@@ -36,6 +36,7 @@ const numberToWords = (num) => {
 
 const GenerateInvoice = () => {
     const LOGO_URL = "/WhatsApp Image 2025-06-09 at 23.55.48_ce077dfb.jpg";
+    const STAMP_URL = "/stamp.jpg";
 
     const COMPANY = {
         name: "Manoneit Solutions",
@@ -104,7 +105,7 @@ const GenerateInvoice = () => {
         });
     };
 
-    /* ================= ROUNDING ================= */
+    /* ================= CALCULATIONS (UNCHANGED) ================= */
     const candidateAmounts = data.candidates.map((c) => {
         const raw =
             c.ctc && c.percentage
@@ -121,11 +122,8 @@ const GenerateInvoice = () => {
     const drawFooter = (doc) => {
         const h = doc.internal.pageSize.height;
         const y = h - 12;
-        doc.setFont("helvetica", "normal");
         doc.setFontSize(8);
-        doc.setTextColor(0, 0, 0);
         doc.line(14, y - 6, 196, y - 6);
-
         doc.text(
             `Regd. Office- ${COMPANY.address}\n${COMPANY.footer}`,
             105,
@@ -138,10 +136,9 @@ const GenerateInvoice = () => {
     const generatePDF = async () => {
         const doc = new jsPDF();
         const logo = await loadLogo(LOGO_URL);
+        const stamp = await loadLogo(STAMP_URL);
 
-        const tableOpts = {
-            didDrawPage: () => drawFooter(doc),
-        };
+        const tableOpts = { didDrawPage: () => drawFooter(doc) };
 
         if (logo) doc.addImage(logo, "PNG", 14, 12, 26, 16);
 
@@ -160,23 +157,40 @@ const GenerateInvoice = () => {
         );
 
         doc.setTextColor(0, 0, 0);
-        doc.line(14, 42, 196, 42);
+        doc.line(14, 35, 196, 35);
 
+        /* -------- TO / INVOICE TABLE (ALIGNED) -------- */
         autoTable(doc, {
             ...tableOpts,
-            startY: 46,
+            startY: 39,
             theme: "grid",
+            columnStyles: {
+                0: { cellWidth: 95 },
+                1: { cellWidth: 95 },
+            },
             body: [[
-                `To,\n${data.contactPerson}\n${data.clientCompany}\n${data.clientAddress}\nDirect line: ${data.directLine}`,
-                `Invoice No: ${data.invoiceNo}\nInvoice Date: ${data.invoiceDate}\nState: ${data.invoiceState}\nReverse Charge: No`
+                `To,
+${data.contactPerson}
+${data.clientCompany}
+${data.clientAddress}
+Direct line: ${data.directLine}`,
+                `Invoice No: ${data.invoiceNo}
+Invoice Date: ${data.invoiceDate}
+State: ${data.invoiceState}
+Reverse Charge: No`
             ]]
         });
 
+        /* -------- RECEIVER / CONSIGNEE (ALIGNED) -------- */
         autoTable(doc, {
             ...tableOpts,
             startY: doc.lastAutoTable.finalY + 4,
             theme: "grid",
             headStyles: { fillColor: [30, 64, 175] },
+            columnStyles: {
+                0: { cellWidth: 90 },
+                1: { cellWidth: 90 },
+            },
             head: [["Details of Receiver | Billed to", "Details of Consignee | Shipped to"]],
             body: [[
                 `Name: ${data.receiverName}
@@ -190,12 +204,18 @@ State: ${COMPANY.state}`
             ]]
         });
 
-        /* ================= SERVICE TABLE ================= */
+        /* -------- SERVICE TABLE (POSITION / DOJ FIXED) -------- */
         autoTable(doc, {
             ...tableOpts,
             startY: doc.lastAutoTable.finalY + 4,
             theme: "grid",
             headStyles: { fillColor: [30, 64, 175] },
+            columnStyles: {
+                0: { cellWidth: 18 },
+                1: { cellWidth: 90 },
+                2: { cellWidth: 40 },
+                3: { cellWidth: 38 },
+            },
             head: [["S.No.", "Particulars", "Remarks", "Amount Rs."]],
             body: [
                 ...data.candidates.map((c, i) => [
@@ -223,14 +243,14 @@ Location: ${c.location}`,
             ],
         });
 
-        /* ✅ FIXED: BLUE HEADER ADDED HERE */
+        /* -------- REMITTANCE TABLE (ALIGNED) -------- */
         autoTable(doc, {
             ...tableOpts,
             startY: doc.lastAutoTable.finalY + 6,
             theme: "grid",
             headStyles: { fillColor: [30, 64, 175] },
             columnStyles: {
-                0: { fontStyle: "bold", cellWidth: 70 },
+                0: { cellWidth: 70 },
                 1: { cellWidth: 110 },
             },
             head: [["Remittance Address", "Through RTGS / NEFT"]],
@@ -250,13 +270,12 @@ Location: ${c.location}`,
             sigY = 40;
         }
 
-        doc.text("For Manoneit Solutions", 140, sigY);
-        doc.text("(Authorized Signatory)", 140, sigY + 14);
+        if (stamp) doc.addImage(stamp, "PNG", 145, sigY - 10, 47, 30);
 
         doc.save(`Invoice-${data.invoiceNo || "draft"}.pdf`);
     };
 
-    /* ================= UI ================= */
+    /* ================= UI (UNCHANGED) ================= */
     return (
         <div className="min-h-screen bg-gray-100 p-6">
             <div className="max-w-6xl mx-auto bg-white p-6 rounded shadow space-y-6">
@@ -306,6 +325,7 @@ Location: ${c.location}`,
                     + Add Candidate
                 </button>
 
+                {/* ✅ SUMMARY BOX — RESTORED EXACTLY */}
                 <div className="bg-blue-50 border p-4 rounded">
                     <div className="flex justify-between">
                         <span>Service Charge</span>
