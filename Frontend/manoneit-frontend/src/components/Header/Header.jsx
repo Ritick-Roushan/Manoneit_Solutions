@@ -12,29 +12,48 @@ const Header = () => {
   const navigate = useNavigate();
 
   // Debug user role
-  console.log('Header user:', user ? { email: user.email, role: user.role } : 'No user logged in');
+  // console.log('Header user:', user ? { email: user.email, role: user.role } : 'No user logged in');
+
+  // const handleLogout = async () => {
+  //   try {
+  //     setLogoutLoading(true);
+  //     setLogoutError(null);
+  //     await axios.post(
+  //       '/api/v1/users/logout',
+  //       {},
+  //       {
+  //         withCredentials: true,
+  //       }
+  //     );
+  //     logout();
+  //     setIsOpen(false);
+  //     setIsProfileOpen(false);
+  //     navigate('/login');
+  //   } catch (error) {
+  //     setLogoutError(error.response?.data?.message || 'Logout failed. Please try again.');
+  //   } finally {
+  //     setLogoutLoading(false);
+  //   }
+  // };
 
   const handleLogout = async () => {
-    try {
-      setLogoutLoading(true);
-      setLogoutError(null);
-      await axios.post(
-        '/api/v1/users/logout',
-        {},
-        {
-          withCredentials: true,
-        }
-      );
-      logout();
-      setIsOpen(false);
-      setIsProfileOpen(false);
-      navigate('/login');
-    } catch (error) {
-      setLogoutError(error.response?.data?.message || 'Logout failed. Please try again.');
-    } finally {
-      setLogoutLoading(false);
-    }
-  };
+  try {
+    setLogoutLoading(true);
+    setLogoutError(null);
+
+    await axios.post('/api/v1/users/logout', {}, { withCredentials: true });
+
+  } catch (error) {
+    console.log("Logout API failed:", error.response?.status);
+  } finally {
+    // Always clear frontend session
+    logout();
+    setIsOpen(false);
+    setIsProfileOpen(false);
+    navigate('/login');
+    setLogoutLoading(false);
+  }
+};
 
   const handleNavClick = (path) => {
     setIsOpen(false);

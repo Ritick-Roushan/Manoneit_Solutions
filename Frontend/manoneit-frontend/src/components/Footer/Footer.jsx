@@ -33,7 +33,7 @@ const Footer = () => {
             <p className="text-gray-300 text-sm">
               Regd. Office: H/N-A/35, Rajeev Nagar Gali, Kanti Factory Road, Gandhi Nagar, Kankarbagh, Patna-800020
             </p>
-            <p className="text-gray-300 text-sm mt-2">Email: manoneitindia@gmail.com</p>
+            <p className="text-gray-300 text-sm mt-2">Email: shivam@manoneitsolutions.in</p>
             <p className="text-gray-300 text-sm">Phone: 9973752777</p>
             <div className="flex space-x-4 mt-4">
               <a
