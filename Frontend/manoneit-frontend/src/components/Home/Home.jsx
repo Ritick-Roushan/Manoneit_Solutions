@@ -1,5 +1,5 @@
 import { useState, useContext, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Slider from 'react-slick';
 import { JobContext } from '../../Context/JobContext';
@@ -18,6 +18,8 @@ const Home = () => {
   const [modalClient, setModalClient] = useState(null);
   const [applyLoading, setApplyLoading] = useState({});
   const [particlesInit, setParticlesInit] = useState(false);
+
+  const navigate = useNavigate();
 
   // Debug jobs
   useEffect(() => {
@@ -56,17 +58,13 @@ const Home = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Handle quick apply
-  const handleQuickApply = (id) => {
-    if (!user) {
-      window.location.href = '/login';
-      return;
-    }
+  const handleViewDetails = (id) => {
     setApplyLoading((prev) => ({ ...prev, [id]: true }));
+
     setTimeout(() => {
       setApplyLoading((prev) => ({ ...prev, [id]: false }));
-      window.location.href = `/apply/${id}`;
-    }, 1000);
+      navigate(`/job-detail/${id}`);
+    }, 500);
   };
 
   const clientSliderSettings = {
@@ -329,12 +327,12 @@ const Home = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleQuickApply(job._id);
+                            handleViewDetails(job._id);
                           }}
                           className="bg-blue-600 text-white px-4 py-2 rounded-full font-medium hover:bg-blue-700 transition-colors duration-300"
                           disabled={applyLoading[job._id]}
                         >
-                          {applyLoading[job._id] ? 'Applying...' : 'Quick Apply'}
+                          {applyLoading[job._id] ? 'Loading...' : 'View Details'}
                         </button>
                       </motion.div>
                     ) : (
@@ -369,16 +367,15 @@ const Home = () => {
                             {job.salary ? `₹${job.salary.toLocaleString()}` : 'Not specified'}
                           </p>
                         </div>
-
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleQuickApply(job._id);
+                            handleViewDetails(job._id);
                           }}
                           className="bg-blue-600 text-white px-4 py-2 rounded-full font-medium hover:bg-blue-700 transition-colors duration-300"
                           disabled={applyLoading[job._id]}
                         >
-                          {applyLoading[job._id] ? 'Applying...' : 'Quick Apply'}
+                          {applyLoading[job._id] ? 'Loading...' : 'View Details'}
                         </button>
                       </motion.div>
                     )}
