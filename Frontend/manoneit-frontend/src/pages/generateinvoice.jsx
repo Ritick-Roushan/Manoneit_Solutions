@@ -134,148 +134,213 @@ const GenerateInvoice = () => {
 
     /* ================= PDF ================= */
     const generatePDF = async () => {
-        const doc = new jsPDF();
-        const logo = await loadLogo(LOGO_URL);
-        const stamp = await loadLogo(STAMP_URL);
 
-        const tableOpts = { didDrawPage: () => drawFooter(doc) };
+        if (!data.clientCompany) {
+            alert("Please enter client company");
+            return;
+        }
 
-        if (logo) doc.addImage(logo, "PNG", 14, 12, 26, 16);
+        if (data.candidates.some(c => !c.candidateName || !c.ctc || !c.percentage)) {
+            alert("Please fill all candidate details");
+            return;
+        }
 
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(30, 64, 175);
-        doc.setFontSize(15);
-        doc.text(COMPANY.name, 105, 18, { align: "center" });
+        try {
 
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(9);
-        doc.text(
-            `Regd. Office- ${COMPANY.address}\nGSTIN: ${COMPANY.gst}`,
-            105,
-            26,
-            { align: "center" }
-        );
+            // 🔥 SAVE DATA
+            const res = await fetch("/api/v1/users/billing/create", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    clientCompany: data.clientCompany,
+                    invoiceDate: data.invoiceDate,
+                    candidates: data.candidates.map((c, i) => {
+                        const base = candidateAmounts[i];
+                        const gst = Math.round((base * COMPANY.igst) / 100);
 
-        doc.setTextColor(0, 0, 0);
-        doc.line(14, 35, 196, 35);
+                        return {
+                            candidateName: c.candidateName,
+                            ctc: Number(c.ctc),
+                            percentage: Number(c.percentage),
+                            amount: base + gst,
+                        };
+                    }),
+                }),
+            });
 
-        /* -------- TO / INVOICE TABLE (ALIGNED) -------- */
-        autoTable(doc, {
-            ...tableOpts,
-            startY: 39,
-            theme: "grid",
-            columnStyles: {
-                0: { cellWidth: 95 },
-                1: { cellWidth: 95 },
-            },
-            body: [[
-                `To,
+            const result = await res.json();
+
+            // ❌ if backend fails
+            if (!res.ok) {
+                throw new Error(result.message || "Failed to save billing");
+            }
+
+            const doc = new jsPDF();
+            const logo = await loadLogo(LOGO_URL);
+            const stamp = await loadLogo(STAMP_URL);
+
+            const tableOpts = { didDrawPage: () => drawFooter(doc) };
+
+            if (logo) doc.addImage(logo, "PNG", 14, 12, 26, 16);
+
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(30, 64, 175);
+            doc.setFontSize(15);
+            doc.text(COMPANY.name, 105, 18, { align: "center" });
+
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(9);
+            doc.text(
+                `Regd. Office- ${COMPANY.address}\nGSTIN: ${COMPANY.gst}`,
+                105,
+                26,
+                { align: "center" }
+            );
+
+            doc.setTextColor(0, 0, 0);
+            doc.line(14, 35, 196, 35);
+
+            /* -------- TO / INVOICE TABLE (ALIGNED) -------- */
+            autoTable(doc, {
+                ...tableOpts,
+                startY: 39,
+                theme: "grid",
+                columnStyles: {
+                    0: { cellWidth: 95 },
+                    1: { cellWidth: 95 },
+                },
+                body: [[
+                    `To,
 ${data.contactPerson}
 ${data.clientCompany}
 ${data.clientAddress}
 Direct line: ${data.directLine}`,
-                `Invoice No: ${data.invoiceNo}
+                    `Invoice No: ${data.invoiceNo}
 Invoice Date: ${data.invoiceDate}
 State: ${data.invoiceState}
 Reverse Charge: No`
-            ]]
-        });
+                ]]
+            });
 
-        /* -------- RECEIVER / CONSIGNEE (ALIGNED) -------- */
-        autoTable(doc, {
-            ...tableOpts,
-            startY: doc.lastAutoTable.finalY + 4,
-            theme: "grid",
-            headStyles: { fillColor: [30, 64, 175] },
-            columnStyles: {
-                0: { cellWidth: 90 },
-                1: { cellWidth: 90 },
-            },
-            head: [["Details of Receiver | Billed to", "Details of Consignee | Shipped to"]],
-            body: [[
-                `Name: ${data.receiverName}
+            /* -------- RECEIVER / CONSIGNEE (ALIGNED) -------- */
+            autoTable(doc, {
+                ...tableOpts,
+                startY: doc.lastAutoTable.finalY + 4,
+                theme: "grid",
+                headStyles: { fillColor: [30, 64, 175] },
+                columnStyles: {
+                    0: { cellWidth: 90 },
+                    1: { cellWidth: 90 },
+                },
+                head: [["Details of Receiver | Billed to", "Details of Consignee | Shipped to"]],
+                body: [[
+                    `Name: ${data.receiverName}
 Address: ${data.receiverAddress}
 GSTIN: ${data.receiverGST}
 State: ${data.receiverState}`,
-                `Name: ${COMPANY.name}
+                    `Name: ${COMPANY.name}
 Address: ${COMPANY.address}
 GSTIN: ${COMPANY.gst}
 State: ${COMPANY.state}`
-            ]]
-        });
+                ]]
+            });
 
-        /* -------- SERVICE TABLE (POSITION / DOJ FIXED) -------- */
-        autoTable(doc, {
-            ...tableOpts,
-            startY: doc.lastAutoTable.finalY + 4,
-            theme: "grid",
-            headStyles: { fillColor: [30, 64, 175] },
-            columnStyles: {
-                0: { cellWidth: 18 },
-                1: { cellWidth: 90 },
-                2: { cellWidth: 40 },
-                3: { cellWidth: 38 },
-            },
-            head: [["S.No.", "Particulars", "Remarks", "Amount Rs."]],
-            body: [
-                ...data.candidates.map((c, i) => [
-                    i + 1,
-                    `Towards Service Charges Of "${c.candidateName}"
+            /* -------- SERVICE TABLE (POSITION / DOJ FIXED) -------- */
+            autoTable(doc, {
+                ...tableOpts,
+                startY: doc.lastAutoTable.finalY + 4,
+                theme: "grid",
+                headStyles: { fillColor: [30, 64, 175] },
+                columnStyles: {
+                    0: { cellWidth: 18 },
+                    1: { cellWidth: 90 },
+                    2: { cellWidth: 40 },
+                    3: { cellWidth: 38 },
+                },
+                head: [["S.No.", "Particulars", "Remarks", "Amount Rs."]],
+                body: [
+                    ...data.candidates.map((c, i) => [
+                        i + 1,
+                        `Towards Service Charges Of "${c.candidateName}"
 Position: ${c.position}
 DOJ: ${c.doj}
 Location: ${c.location}`,
-                    `${c.percentage}% On CTC ${c.ctc}`,
-                    candidateAmounts[i].toString(),
-                ]),
-                ["", "IGST @18%", "", igstAmount.toString()],
-                [
-                    "",
-                    {
-                        content: `Total\nRupees (Words):- ${numberToWords(totalAmount)} Only.`,
-                        colSpan: 2,
-                        styles: { fontStyle: "bold" },
-                    },
-                    {
-                        content: totalAmount.toString(),
-                        styles: { fontStyle: "bold" },
-                    },
+                        `${c.percentage}% On CTC ${c.ctc}`,
+                        candidateAmounts[i].toString(),
+                    ]),
+                    ["", "IGST @18%", "", igstAmount.toString()],
+                    [
+                        "",
+                        {
+                            content: `Total\nRupees (Words):- ${numberToWords(totalAmount)} Only.`,
+                            colSpan: 2,
+                            styles: { fontStyle: "bold" },
+                        },
+                        {
+                            content: totalAmount.toString(),
+                            styles: { fontStyle: "bold" },
+                        },
+                    ],
                 ],
-            ],
-        });
+            });
 
-        /* -------- REMITTANCE TABLE (ALIGNED) -------- */
-        autoTable(doc, {
-            ...tableOpts,
-            startY: doc.lastAutoTable.finalY + 6,
-            theme: "grid",
-            headStyles: { fillColor: [30, 64, 175] },
-            columnStyles: {
-                0: { cellWidth: 70 },
-                1: { cellWidth: 110 },
-            },
-            head: [["Remittance Address", "Through RTGS / NEFT"]],
-            body: [
-                ["Beneficiary Name", COMPANY.name],
-                ["Bank Name", COMPANY.bank.name],
-                ["Beneficiary Account No.", COMPANY.bank.account],
-                ["Bank Address", COMPANY.bank.branch],
-                ["IFSC Code", COMPANY.bank.ifsc],
-            ],
-        });
+            /* -------- REMITTANCE TABLE (ALIGNED) -------- */
+            autoTable(doc, {
+                ...tableOpts,
+                startY: doc.lastAutoTable.finalY + 6,
+                theme: "grid",
+                headStyles: { fillColor: [30, 64, 175] },
+                columnStyles: {
+                    0: { cellWidth: 70 },
+                    1: { cellWidth: 110 },
+                },
+                head: [["Remittance Address", "Through RTGS / NEFT"]],
+                body: [
+                    ["Beneficiary Name", COMPANY.name],
+                    ["Bank Name", COMPANY.bank.name],
+                    ["Beneficiary Account No.", COMPANY.bank.account],
+                    ["Bank Address", COMPANY.bank.branch],
+                    ["IFSC Code", COMPANY.bank.ifsc],
+                ],
+            });
 
-        let sigY = doc.lastAutoTable.finalY + 18;
-        if (sigY > doc.internal.pageSize.height - 40) {
-            doc.addPage();
-            drawFooter(doc);
-            sigY = 40;
+            let sigY = doc.lastAutoTable.finalY + 18;
+            if (sigY > doc.internal.pageSize.height - 40) {
+                doc.addPage();
+                drawFooter(doc);
+                sigY = 40;
+            }
+
+            if (stamp) doc.addImage(stamp, "PNG", 145, sigY - 10, 47, 30);
+
+            doc.save(`Invoice-${data.invoiceNo || "draft"}.pdf`);
+
+            alert("Invoice saved + PDF generated ✅");
+
+        } catch (error) {
+            console.error(error);
+            alert("Error saving invoice ❌");
         }
 
-        if (stamp) doc.addImage(stamp, "PNG", 145, sigY - 10, 47, 30);
-
-        doc.save(`Invoice-${data.invoiceNo || "draft"}.pdf`);
     };
 
-    /* ================= UI (UNCHANGED) ================= */
+
+    const fieldLabels = {
+        contactPerson: "Contact Person (HR)",
+        clientCompany: "Client Company Name",
+        clientAddress: "Company Address",
+        directLine: "Direct Line",
+        invoiceNo: "Invoice No",
+        invoiceDate: "Invoice Billing Date",
+        invoiceState: "Invoice Billing State( Sender State )",
+        receiverName: "Client Company Name",
+        receiverAddress: "Company Address",
+        receiverGST: "Receiver GST",
+        receiverState: "Receiver State",
+    };
+
     return (
         <div className="min-h-screen bg-gray-100 p-6">
             <div className="max-w-6xl mx-auto bg-white p-6 rounded shadow space-y-6">
@@ -287,10 +352,26 @@ Location: ${c.location}`,
                         .map(([key, value]) => (
                             <input
                                 key={key}
+                                type={
+                                    key === "invoiceDate"
+                                        ? (value ? "date" : "text")
+                                        : "text"
+                                }
                                 name={key}
                                 value={value}
+                                onFocus={(e) => {
+                                    if (key === "invoiceDate") e.target.type = "date";
+                                }}
+                                onBlur={(e) => {
+                                    if (key === "invoiceDate" && !e.target.value) {
+                                        e.target.type = "text";
+                                    }
+                                }}
                                 onChange={updateField}
-                                placeholder={key.replace(/([A-Z])/g, " $1")}
+                                placeholder={
+                                    fieldLabels[key] ||
+                                    key.replace(/([A-Z])/g, " $1")
+                                }
                                 className="border px-3 py-2 rounded"
                             />
                         ))}
@@ -311,9 +392,26 @@ Location: ${c.location}`,
                             {Object.entries(c).map(([key, val]) => (
                                 <input
                                     key={key}
+                                    type={
+                                        key === "doj"
+                                            ? (val ? "date" : "text")
+                                            : "text"
+                                    }
                                     value={val}
+                                    onFocus={(e) => {
+                                        if (key === "doj") e.target.type = "date";
+                                    }}
+                                    onBlur={(e) => {
+                                        if (key === "doj" && !e.target.value) {
+                                            e.target.type = "text";
+                                        }
+                                    }}
                                     onChange={(e) => updateCandidate(i, key, e.target.value)}
-                                    placeholder={key.replace(/([A-Z])/g, " $1")}
+                                    placeholder={
+                                        key === "doj"
+                                            ? "Enter date of joining"
+                                            : key.replace(/([A-Z])/g, " $1")
+                                    }
                                     className="border p-2 rounded"
                                 />
                             ))}
@@ -325,7 +423,7 @@ Location: ${c.location}`,
                     + Add Candidate
                 </button>
 
-                {/* ✅ SUMMARY BOX — RESTORED EXACTLY */}
+                {/* SUMMARY BOX — RESTORED EXACTLY */}
                 <div className="bg-blue-50 border p-4 rounded">
                     <div className="flex justify-between">
                         <span>Service Charge</span>

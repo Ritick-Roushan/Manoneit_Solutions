@@ -5,6 +5,7 @@ import { submitResume, getMyApplications, getAllApplications, deleteAllApplicati
 import { multerMiddleware } from '../middlewares/multer.middleware.js';
 import { verifyJWT } from '../middlewares/auth.middleware.js';
 import { generateOtp } from '../controllers/auth.controller.js';
+import { createBilling,getBillingDashboard,deleteBilling, updateBillingStatus} from "../controllers/billing.controller.js";
 
 const router = Router();
 
@@ -32,6 +33,13 @@ router.route('/jobs/deleteJob/:id').delete(verifyJWT, deleteJob);
 router.route('/jobs/closeJob/:id').patch(verifyJWT, closeJob);
 router.route('/jobs/my-jobs').get(verifyJWT, getMyJobs);
 router.route('/jobs/pending-jobs').get(verifyJWT, getPendingJobs)
+
+// billing routes 
+
+router.route("/billing/create").post(verifyJWT, createBilling);
+router.route("/billing/dashboard").get(verifyJWT, getBillingDashboard);
+router.route("/billing/:id").delete(verifyJWT,deleteBilling);
+router.route("/billing/status/:id").patch(verifyJWT,updateBillingStatus);
 
 
 export default router;
