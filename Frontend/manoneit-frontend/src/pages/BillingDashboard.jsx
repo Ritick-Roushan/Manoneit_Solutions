@@ -6,6 +6,7 @@ const BillingDashboard = () => {
   const [search, setSearch] = useState("");
   const [fy, setFy] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [expandedCompanies, setExpandedCompanies] = useState({});
 
   const [form, setForm] = useState({
     clientCompany: "",
@@ -91,6 +92,20 @@ const BillingDashboard = () => {
       console.error(err);
       alert("Status update failed");
     }
+  };
+
+
+  const toggleCompanyView = (companyName) => {
+    setExpandedCompanies((prev) => ({
+      ...prev,
+      [companyName]: !prev[companyName],
+    }));
+  };
+
+  const getVisibleCandidates = (company) => {
+    return expandedCompanies[company._id]
+      ? company.candidates
+      : company.candidates.slice(0, 5);
   };
 
   const filteredCompanies = data?.companyWise?.map((company) => {
@@ -300,7 +315,7 @@ const BillingDashboard = () => {
               </div>
 
               <div className="p-5 space-y-4">
-                {company.candidates.map((c, idx) => (
+                {getVisibleCandidates(company).map((c, idx) => (
                   <div key={idx} className="border border-gray-100 rounded-2xl p-5 hover:border-gray-200 transition-all">
                     <div className="flex justify-between items-start">
                       <div>
@@ -322,6 +337,19 @@ const BillingDashboard = () => {
                     </div>
                   </div>
                 ))}
+
+                {company.candidates.length > 5 && (
+                  <div className="flex justify-center pt-2">
+                    <button
+                      onClick={() => toggleCompanyView(company._id)}
+                      className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition-all"
+                    >
+                      {expandedCompanies[company._id]
+                        ? "Show Less"
+                        : `View All (${company.candidates.length})`}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))}

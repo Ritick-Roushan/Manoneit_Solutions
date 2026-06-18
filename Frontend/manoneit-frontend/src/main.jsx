@@ -24,6 +24,7 @@ import AdminReview from './pages/approve.job.jsx';
 import JobDetailPage from './pages/jobdetailpage.jsx';
 import GenerateInvoice from './pages/generateinvoice.jsx';
 import BillingDashboard from './pages/BillingDashboard.jsx';
+import CandidateManagement from './pages/CandidateManagement.jsx'
 
 // Placeholder Page
 const Page = ({ title }) => (
@@ -152,6 +153,14 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute allowedRoles={['admin']}>
             <BillingDashboard />
+          </ProtectedRoute>
+        ),
+      },
+        {
+        path: '/candidates-details',
+        element: (
+          <ProtectedRoute allowedRoles={['admin']}>
+            <CandidateManagement />
           </ProtectedRoute>
         ),
       },

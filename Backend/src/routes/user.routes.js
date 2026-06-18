@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import { loginUser, logoutUser, registerUser, refreshAccessToken, changeCurrentPassword, getUserStats } from '../controllers/user.controller.js';
-import { createJob, getAllJobs, getJobById, deleteJob, getClosedJobs, getMyJobs, approveJob, closeJob, getPendingJobs} from '../controllers/job.controller.js';
+import { createJob, getAllJobs, getJobById, deleteJob, getClosedJobs, getMyJobs, approveJob, closeJob, getPendingJobs } from '../controllers/job.controller.js';
 import { submitResume, getMyApplications, getAllApplications, deleteAllApplicationsForJob, deleteSingleApplication } from '../controllers/application.controller.js';
 import { multerMiddleware } from '../middlewares/multer.middleware.js';
 import { verifyJWT } from '../middlewares/auth.middleware.js';
+import { excelUploadMiddleware }from "../middlewares/excelUpload.middleware.js";
 import { generateOtp } from '../controllers/auth.controller.js';
-import { createBilling,getBillingDashboard,deleteBilling, updateBillingStatus} from "../controllers/billing.controller.js";
+import { createBilling, getBillingDashboard, deleteBilling, updateBillingStatus } from "../controllers/billing.controller.js";
+import { createCandidate, getCandidates, getCandidateById, updateCandidate, deleteCandidate,updateStatusFeedback, importCandidates, } from "../controllers/candidate.controller.js";
 
 const router = Router();
 
@@ -38,8 +40,19 @@ router.route('/jobs/pending-jobs').get(verifyJWT, getPendingJobs)
 
 router.route("/billing/create").post(verifyJWT, createBilling);
 router.route("/billing/dashboard").get(verifyJWT, getBillingDashboard);
-router.route("/billing/:id").delete(verifyJWT,deleteBilling);
-router.route("/billing/status/:id").patch(verifyJWT,updateBillingStatus);
+router.route("/billing/:id").delete(verifyJWT, deleteBilling);
+router.route("/billing/status/:id").patch(verifyJWT, updateBillingStatus);
+
+
+/* ================= CANDIDATE ROUTES ================= */
+
+router.route("/candidates/create").post(verifyJWT, createCandidate);
+router.route("/candidates").get(verifyJWT, getCandidates);
+router.route("/candidates/:id").get(verifyJWT, getCandidateById);
+router.route("/candidates/:id").put(verifyJWT, updateCandidate);
+router.route("/candidates/:id").delete(verifyJWT, deleteCandidate);
+router.route("/candidates/status-feedback/:id").patch(verifyJWT, updateStatusFeedback);
+router.route("/candidates/import").post(verifyJWT,excelUploadMiddleware,importCandidates);  
 
 
 export default router;
