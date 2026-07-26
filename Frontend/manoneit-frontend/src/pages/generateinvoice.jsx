@@ -77,6 +77,7 @@ const GenerateInvoice = () => {
                 ctc: "",
             },
         ],
+        addSignature: true,
     });
 
     const updateField = (e) =>
@@ -105,7 +106,7 @@ const GenerateInvoice = () => {
         });
     };
 
-    /* ================= CALCULATIONS (UNCHANGED) ================= */
+    /* ================= CALCULATIONS ================= */
     const candidateAmounts = data.candidates.map((c) => {
         const raw =
             c.ctc && c.percentage
@@ -307,13 +308,27 @@ Location: ${c.location}`,
             });
 
             let sigY = doc.lastAutoTable.finalY + 18;
-            if (sigY > doc.internal.pageSize.height - 40) {
+            if (sigY > doc.internal.pageSize.height - 45) {
                 doc.addPage();
                 drawFooter(doc);
                 sigY = 40;
             }
 
-            if (stamp) doc.addImage(stamp, "PNG", 145, sigY - 10, 47, 30);
+            // ========== SIGNATURE / STAMP SECTION ==========
+            if (data.addSignature) {
+                // With stamp – increased size for better presence
+                if (stamp) {
+                    doc.addImage(stamp, "PNG", 140, sigY - 8, 55, 32);
+                }
+            } else {
+                // Without stamp – tighter spacing for perfect fit
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(10);
+                doc.text("For Manoneit Solutions", 145, sigY + 2);
+                doc.text("(Authorized Signatory)", 145, sigY + 26);
+            }
+
+            // ===============================================
 
             doc.save(`Invoice-${data.invoiceNo || "draft"}.pdf`);
 
@@ -348,7 +363,7 @@ Location: ${c.location}`,
 
                 <div className="grid grid-cols-2 gap-4">
                     {Object.entries(data)
-                        .filter(([k]) => k !== "candidates")
+                        .filter(([k]) => k !== "candidates" && k !== "addSignature")
                         .map(([key, value]) => (
                             <input
                                 key={key}
@@ -376,6 +391,32 @@ Location: ${c.location}`,
                             />
                         ))}
                 </div>
+
+                {/* ========== Signature Option ========== */}
+                <div className="flex items-center gap-6 p-4 bg-gray-50 border rounded">
+                    <span className="font-medium">Signature / Stamp:</span>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                            type="radio"
+                            name="addSignature"
+                            checked={data.addSignature === true}
+                            onChange={() => setData({ ...data, addSignature: true })}
+                            className="w-4 h-4"
+                        />
+                        <span>Add Signature (with stamp)</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                            type="radio"
+                            name="addSignature"
+                            checked={data.addSignature === false}
+                            onChange={() => setData({ ...data, addSignature: false })}
+                            className="w-4 h-4"
+                        />
+                        <span>No Signature (space for physical sign)</span>
+                    </label>
+                </div>
+                {/* ========================================== */}
 
                 {data.candidates.map((c, i) => (
                     <div key={i} className="border p-4 rounded space-y-3">
@@ -423,7 +464,7 @@ Location: ${c.location}`,
                     + Add Candidate
                 </button>
 
-                {/* SUMMARY BOX — RESTORED EXACTLY */}
+                {/* SUMMARY BOX */}
                 <div className="bg-blue-50 border p-4 rounded">
                     <div className="flex justify-between">
                         <span>Service Charge</span>
