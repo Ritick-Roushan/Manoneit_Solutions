@@ -33,6 +33,10 @@ const billingSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
+    invoiceNo: {
+      type: String,
+      default: "",
+    },
     status: {
       type: String,
       enum: ["pending", "cleared"],

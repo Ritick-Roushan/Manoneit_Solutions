@@ -3,7 +3,7 @@ import { asyncHandler } from "../utils/asynchandler.js";
 
 /* ================= CREATE BILLING ================= */
 const createBilling = asyncHandler(async (req, res) => {
-  const { clientCompany, candidates, invoiceDate } = req.body;
+  const { clientCompany, candidates, invoiceDate, invoiceNo } = req.body;
 
   if (!clientCompany || !Array.isArray(candidates) || candidates.length === 0) {
     return res.status(400).json({
@@ -22,6 +22,7 @@ const createBilling = asyncHandler(async (req, res) => {
     percentage: Number(c.percentage),
     amount: Number(c.amount),
     invoiceDate: validDate,
+    invoiceNo: invoiceNo || "",
     status: "pending",
   }));
 
@@ -184,12 +185,55 @@ const getBillingDashboard = asyncHandler(async (req, res) => {
                   name: "$candidateName",
                   amount: "$amount",
                   ctc: "$ctc",
+                  invoiceNo: "$invoiceNo",
                   status: { $ifNull: ["$status", "pending"] },
                 },
               },
             },
           },
           { $sort: { totalAmount: -1 } },
+        ],
+
+        // latestInvoice: [
+        //   { $sort: { createdAt: -1 } },
+        //   { $limit: 1 },
+        //   { $project: { invoiceNo: 1, _id: 0 } },
+        // ],
+
+        latestInvoice: [
+          {
+            $match: {
+              invoiceNo: {
+                $regex: /^MS\/\d{2}-\d{2}\/\d+$/,
+              },
+            },
+          },
+          {
+            $addFields: {
+              invoiceSequence: {
+                $toInt: {
+                  $arrayElemAt: [
+                    { $split: ["$invoiceNo", "/"] },
+                    -1,
+                  ],
+                },
+              },
+            },
+          },
+          {
+            $sort: {
+              invoiceSequence: -1,
+            },
+          },
+          {
+            $limit: 1,
+          },
+          {
+            $project: {
+              _id: 0,
+              invoiceNo: 1,
+            },
+          },
         ],
       },
     },
@@ -203,6 +247,7 @@ const getBillingDashboard = asyncHandler(async (req, res) => {
         totalCandidates: 0,
       },
       companyWise: result[0]?.companyWise || [],
+      latestInvoiceNo: result[0]?.latestInvoice[0]?.invoiceNo || "—",
     },
   });
 });

@@ -157,6 +157,7 @@ const GenerateInvoice = () => {
                 body: JSON.stringify({
                     clientCompany: data.clientCompany,
                     invoiceDate: data.invoiceDate,
+                    invoiceNo: data.invoiceNo,
                     candidates: data.candidates.map((c, i) => {
                         const base = candidateAmounts[i];
                         const gst = Math.round((base * COMPANY.igst) / 100);

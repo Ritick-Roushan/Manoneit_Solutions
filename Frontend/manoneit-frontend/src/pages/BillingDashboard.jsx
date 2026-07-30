@@ -14,6 +14,7 @@ const BillingDashboard = () => {
     ctc: "",
     percentage: "",
     invoiceDate: "",
+    invoiceNo: "",
   });
 
   const getFinancialYears = () => {
@@ -59,6 +60,7 @@ const BillingDashboard = () => {
       body: JSON.stringify({
         clientCompany: form.clientCompany,
         invoiceDate: form.invoiceDate,
+        invoiceNo: form.invoiceNo || "",
         candidates: [{
           candidateName: form.candidateName,
           ctc: form.ctc,
@@ -68,7 +70,7 @@ const BillingDashboard = () => {
       }),
     });
 
-    setForm({ clientCompany: "", candidateName: "", ctc: "", percentage: "", invoiceDate: "" });
+    setForm({ clientCompany: "", candidateName: "", ctc: "", percentage: "", invoiceDate: "", invoiceNo: "" });
     setShowForm(false);
     fetchData();
   };
@@ -93,7 +95,6 @@ const BillingDashboard = () => {
       alert("Status update failed");
     }
   };
-
 
   const toggleCompanyView = (companyName) => {
     setExpandedCompanies((prev) => ({
@@ -131,7 +132,7 @@ const BillingDashboard = () => {
     );
   }
 
-  const isEmpty = !data || data.companyWise.length === 0;
+  const isEmpty = !data || !data.companyWise || data.companyWise.length === 0;
   const isFYSelected = fy !== "";
 
   // Empty State
@@ -194,7 +195,11 @@ const BillingDashboard = () => {
                   <label className="font-medium text-gray-700">Percentage (%)</label>
                   <input placeholder="8.5" value={form.percentage} onChange={(e) => setForm({ ...form, percentage: e.target.value })} className="w-full border border-gray-300 focus:border-blue-500 rounded-2xl px-4 py-3" />
                 </div>
-                <div className="sm:col-span-2 space-y-1.5">
+                <div className="space-y-1.5">
+                  <label className="font-medium text-gray-700">Invoice No</label>
+                  <input placeholder="e.g. INV-2025-001" value={form.invoiceNo} onChange={(e) => setForm({ ...form, invoiceNo: e.target.value })} className="w-full border border-gray-300 focus:border-blue-500 rounded-2xl px-4 py-3" />
+                </div>
+                <div className="space-y-1.5">
                   <label className="font-medium text-gray-700">Invoice Date</label>
                   <input type="date" value={form.invoiceDate} onChange={(e) => setForm({ ...form, invoiceDate: e.target.value })} className="w-full border border-gray-300 focus:border-blue-500 rounded-2xl px-4 py-3" />
                 </div>
@@ -210,7 +215,7 @@ const BillingDashboard = () => {
     );
   }
 
-  // Main Dashboard (when data exists)
+  // Main Dashboard
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-8 pt-6">
@@ -223,7 +228,7 @@ const BillingDashboard = () => {
               <p className="text-blue-200 text-sm">FY Summary</p>
             </div>
             <div className="text-right">
-              <p className="text-3xl sm:text-4xl font-semibold">₹{Number(data.overall.totalAmount).toLocaleString("en-IN")}</p>
+              <p className="text-3xl sm:text-4xl font-semibold">₹{Number(data.overall?.totalAmount || 0).toLocaleString("en-IN")}</p>
               <p className="text-blue-200 text-sm">Total Billed</p>
             </div>
           </div>
@@ -231,13 +236,21 @@ const BillingDashboard = () => {
           <div className="grid grid-cols-2 gap-4 sm:gap-6">
             <div className="bg-white/10 backdrop-blur-md rounded-2xl p-5 sm:p-6">
               <p className="text-emerald-300 font-medium text-sm sm:text-base">Cleared</p>
-              <p className="text-2xl sm:text-3xl font-semibold mt-1 text-emerald-100">₹{Number(data.overall.clearedAmount || 0).toLocaleString("en-IN")}</p>
+              <p className="text-2xl sm:text-3xl font-semibold mt-1 text-emerald-100">₹{Number(data.overall?.clearedAmount || 0).toLocaleString("en-IN")}</p>
             </div>
             <div className="bg-white/10 backdrop-blur-md rounded-2xl p-5 sm:p-6">
               <p className="text-rose-300 font-medium text-sm sm:text-base">Pending</p>
-              <p className="text-2xl sm:text-3xl font-semibold mt-1 text-rose-100">₹{Number(data.overall.pendingAmount || 0).toLocaleString("en-IN")}</p>
+              <p className="text-2xl sm:text-3xl font-semibold mt-1 text-rose-100">₹{Number(data.overall?.pendingAmount || 0).toLocaleString("en-IN")}</p>
             </div>
           </div>
+        </div>
+
+        {/* Latest Invoice No */}
+        <div className="bg-white rounded-2xl shadow px-6 py-4 flex items-center justify-between">
+          <span className="text-gray-600 font-medium">Latest Invoice No</span>
+          <span className="text-xl font-bold text-blue-700 tracking-wide">
+            {data.latestInvoiceNo || "—"}
+          </span>
         </div>
 
         {/* Filters + New Billing */}
@@ -282,7 +295,11 @@ const BillingDashboard = () => {
                 <label className="font-medium text-gray-700">Percentage (%)</label>
                 <input placeholder="8.5" value={form.percentage} onChange={(e) => setForm({ ...form, percentage: e.target.value })} className="w-full border border-gray-300 focus:border-blue-500 rounded-2xl px-4 py-3" />
               </div>
-              <div className="sm:col-span-2 space-y-1.5">
+              <div className="space-y-1.5">
+                <label className="font-medium text-gray-700">Invoice No</label>
+                <input placeholder="e.g. INV-2025-001" value={form.invoiceNo} onChange={(e) => setForm({ ...form, invoiceNo: e.target.value })} className="w-full border border-gray-300 focus:border-blue-500 rounded-2xl px-4 py-3" />
+              </div>
+              <div className="space-y-1.5">
                 <label className="font-medium text-gray-700">Invoice Date</label>
                 <input type="date" value={form.invoiceDate} onChange={(e) => setForm({ ...form, invoiceDate: e.target.value })} className="w-full border border-gray-300 focus:border-blue-500 rounded-2xl px-4 py-3" />
               </div>
@@ -295,10 +312,9 @@ const BillingDashboard = () => {
         )}
 
         {/* Company List */}
-        <div className={`grid gap-6 ${companyCount === 1 ? 'grid-cols-1 max-w-3xl mx-auto' : 'grid-cols-1 md:grid-cols-2'}`}>
+        <div className={`grid gap-6 ${companyCount === 1 ? "grid-cols-1 max-w-3xl mx-auto" : "grid-cols-1 md:grid-cols-2"}`}>
           {filteredCompanies.map((company, i) => (
             <div key={i} className="bg-white rounded-3xl shadow-xl overflow-hidden hover:shadow-2xl transition-all">
-              {/* Company Header & Candidates... (same as before) */}
               <div className="bg-gradient-to-r from-gray-900 to-gray-800 px-6 py-5 text-white">
                 <div className="flex justify-between items-start">
                   <h3 className="font-bold text-lg sm:text-xl">{company._id}</h3>
@@ -308,9 +324,18 @@ const BillingDashboard = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-6 mt-5 text-sm">
-                  <div><p className="text-emerald-400 font-semibold">₹{Number(company.totalAmount).toLocaleString("en-IN")}</p><p className="text-gray-400 text-xs">TOTAL</p></div>
-                  <div><p className="text-emerald-400 font-semibold">₹{Number(company.clearedAmount || 0).toLocaleString("en-IN")}</p><p className="text-gray-400 text-xs">CLEARED</p></div>
-                  <div><p className="text-rose-400 font-semibold">₹{Number(company.pendingAmount || 0).toLocaleString("en-IN")}</p><p className="text-gray-400 text-xs">PENDING</p></div>
+                  <div>
+                    <p className="text-emerald-400 font-semibold">₹{Number(company.totalAmount).toLocaleString("en-IN")}</p>
+                    <p className="text-gray-400 text-xs">TOTAL</p>
+                  </div>
+                  <div>
+                    <p className="text-emerald-400 font-semibold">₹{Number(company.clearedAmount || 0).toLocaleString("en-IN")}</p>
+                    <p className="text-gray-400 text-xs">CLEARED</p>
+                  </div>
+                  <div>
+                    <p className="text-rose-400 font-semibold">₹{Number(company.pendingAmount || 0).toLocaleString("en-IN")}</p>
+                    <p className="text-gray-400 text-xs">PENDING</p>
+                  </div>
                 </div>
               </div>
 
@@ -321,17 +346,33 @@ const BillingDashboard = () => {
                       <div>
                         <p className="font-semibold text-base">{c.name}</p>
                         <p className="text-gray-500 text-sm">CTC: ₹{Number(c.ctc).toLocaleString("en-IN")}</p>
+                        {c.invoiceNo && (
+                          <p className="text-gray-500 text-sm">
+                            {c.invoiceNo}
+                          </p>
+                        )}
                       </div>
                       <p className="font-mono font-semibold text-lg">₹{Number(c.amount).toLocaleString("en-IN")}</p>
                     </div>
 
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-5">
-                      <select value={c.status || "pending"} onChange={(e) => updateStatus(c.id, e.target.value)} className={`px-5 py-2.5 rounded-xl text-sm font-medium border w-full sm:w-auto transition-all ${c.status === "cleared" ? "bg-green-100 text-green-700 border-green-300" : "bg-red-100 text-red-700 border-red-300"}`}>
+                      <select
+                        value={c.status || "pending"}
+                        onChange={(e) => updateStatus(c.id, e.target.value)}
+                        className={`px-5 py-2.5 rounded-xl text-sm font-medium border w-full sm:w-auto transition-all ${
+                          c.status === "cleared"
+                            ? "bg-green-100 text-green-700 border-green-300"
+                            : "bg-red-100 text-red-700 border-red-300"
+                        }`}
+                      >
                         <option value="pending">Pending</option>
                         <option value="cleared">Cleared</option>
                       </select>
 
-                      <button onClick={() => handleDelete(c.id)} className="text-red-500 hover:text-red-600 text-sm font-medium hover:bg-red-50 px-4 py-2 rounded-xl transition-all w-full sm:w-auto">
+                      <button
+                        onClick={() => handleDelete(c.id)}
+                        className="text-red-500 hover:text-red-600 text-sm font-medium hover:bg-red-50 px-4 py-2 rounded-xl transition-all w-full sm:w-auto"
+                      >
                         🗑 Delete
                       </button>
                     </div>
