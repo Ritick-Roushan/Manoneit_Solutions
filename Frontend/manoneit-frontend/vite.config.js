@@ -13,7 +13,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': { // This means any request starting with /api
+      '/api': {
         target: 'http://localhost:8000', // Replace with your backend server URL
         changeOrigin: true, // Changes the origin of the host header to the target URL
         secure: false, // Set to true if your backend uses HTTPS
