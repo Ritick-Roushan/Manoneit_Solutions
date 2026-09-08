@@ -14,7 +14,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:8000', // Replace with your backend server URL
+        target:  'https://manoneit-backend.onrender.com', // 'http://localhost:8000', // Replace with your backend server URL
         changeOrigin: true, // Changes the origin of the host header to the target URL
         secure: false, // Set to true if your backend uses HTTPS
       },
